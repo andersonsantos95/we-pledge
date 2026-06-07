@@ -1,4 +1,16 @@
-# Logs
+# ── Hardhat ───────────────────────────────
+artifacts/
+cache/
+typechain-types/
+coverage.json
+gas-report.txt
+
+# ── OS ────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs ──────────────────────────────────
 logs
 *.log
 npm-debug.log*
