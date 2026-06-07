@@ -436,6 +436,146 @@ contract WePledge is ReentrancyGuard {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Fase 3 — Finalização e vesting
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// @notice Finaliza a captação e inicia o vesting quando a meta foi atingida.
+    /// @dev Exclusivo do criador: autoridade de iniciar vesting é deliberadamente
+    ///      centralizada no criador para alinhamento de incentivos — ele declara
+    ///      que está pronto para executar o projeto antes de acessar os fundos.
+    ///      Não é `payable`: não recebe ETH.
+    ///      Não usa `nonReentrant`: não realiza chamadas externas.
+    ///      Pode ser chamada antes ou após o prazoCaptacao, enquanto estado == Captacao
+    ///      e meta estiver atingida. A janela de abandono (JANELA_FINALIZACAO +
+    ///      JANELA_ABANDONO) é relevante para marcarAbandono (Fase 5), não aqui.
+    /// @param idCampanha Identificador da campanha a finalizar.
+    function finalizarCampanha(uint256 idCampanha) external {
+        Campanha storage c = campanhas[idCampanha];
+
+        // ── CHECKS ────────────────────────────────────────────────────────────
+        require(c.criador != address(0), "WePledge: campanha inexistente");
+
+        // Invariante: só o criador inicia o vesting.
+        // Qualquer outro endereço — mesmo um contribuinte majoritário — não pode
+        // forçar a liberação. Proteção contra griefing e contra a tentação de
+        // "forçar" o criador a entregar antes de estar pronto.
+        require(msg.sender == c.criador, "WePledge: apenas o criador pode finalizar");
+
+        // Invariante: estado deve ser Captacao.
+        // Impede dupla-finalização e finalização de campanhas já fracassadas.
+        require(c.estado == EstadoCampanha.Captacao, "WePledge: campanha nao esta em captacao");
+
+        // Invariante: meta atingida antes de liberar qualquer fundo.
+        // Garante o modelo todo-ou-nada: criador nunca inicia vesting abaixo da meta.
+        require(c.valorArrecadado >= c.meta, "WePledge: meta nao atingida");
+
+        // ── EFFECTS ───────────────────────────────────────────────────────────
+        c.estado = EstadoCampanha.EmVesting;
+
+        // dataInicioVesting define t=0 do cronograma de tranches.
+        // Todos os tempoAposVesting são contados a partir deste momento,
+        // não da criação da campanha — o "relógio do criador" começa quando
+        // ele de fato pode usar os fundos.
+        c.dataInicioVesting = block.timestamp;
+
+        // ── INTERACTIONS ──────────────────────────────────────────────────────
+        emit CampanhaFinalizada(idCampanha, c.valorArrecadado, block.timestamp);
+    }
+
+    /// @notice Saca a próxima tranche disponível do cronograma de vesting.
+    /// @dev Exclusivo do criador. Processa uma tranche por chamada — o criador
+    ///      paga o gas de cada saque individualmente, o que é intencional:
+    ///      cada tranche representa uma entrega (ou checkpoint) do projeto.
+    ///
+    ///      `nonReentrant`: esta função transfere ETH via call externa. Sem o guard,
+    ///      um criador malicioso (contrato) poderia re-entrar em sacarTranche durante
+    ///      a transferência e sacar a mesma tranche duas vezes. O guard + CEI são
+    ///      defesa em camadas: CEI evita o vetor lógico, nonReentrant trava o mutex.
+    ///
+    ///      Última tranche: recebe o saldo restante (valorArrecadado - valorJaSacado)
+    ///      em vez do cálculo percentual × total, eliminando possível dust de wei
+    ///      preso no contrato por divisão inteira.
+    ///
+    ///      Transferência via `call{value}("")` em vez de `transfer` ou `send`:
+    ///      - `transfer` e `send` repassam apenas 2300 gas (stipend), o que reverte
+    ///        se o destinatário for um contrato com lógica no fallback.
+    ///      - `call` repassa todo o gas disponível (menos o retido pelo caller),
+    ///        sendo a forma recomendada pela comunidade Solidity desde o EIP-1884.
+    ///      - O retorno booleano é verificado explicitamente com require.
+    ///
+    /// @param idCampanha Identificador da campanha em vesting.
+    function sacarTranche(uint256 idCampanha) external nonReentrant {
+        Campanha storage c = campanhas[idCampanha];
+
+        // ── CHECKS ────────────────────────────────────────────────────────────
+        require(c.criador != address(0), "WePledge: campanha inexistente");
+        require(msg.sender == c.criador, "WePledge: apenas o criador pode sacar");
+        require(c.estado == EstadoCampanha.EmVesting, "WePledge: campanha nao esta em vesting");
+
+        // Encontrar a próxima tranche não sacada.
+        // Iteração sequencial garante que tranches são sacadas em ordem:
+        // tranche i só é sacável após i-1 ter sido sacada (porque encontramos
+        // sempre a de menor índice não sacada).
+        uint256 totalTranches = c.cronograma.length;
+        bool encontrada = false;
+        uint8 indiceTranche = 0;
+
+        for (uint256 i = 0; i < totalTranches; i++) {
+            if (!c.cronograma[i].sacada) {
+                indiceTranche = uint8(i);
+                encontrada = true;
+                break;
+            }
+        }
+
+        // Defesa teórica: se estado é EmVesting, sempre existe ao menos uma tranche
+        // não sacada (a última tranche sacada transiciona para Concluida, não EmVesting).
+        require(encontrada, "WePledge: nenhuma tranche disponivel");
+
+        // Invariante temporal: tranche só disponível após seu prazo relativo ao vesting.
+        // Usar >= (inclusivo): no segundo exato do prazo, a tranche já é sacável.
+        Tranche storage tranche = c.cronograma[indiceTranche];
+        require(
+            block.timestamp >= c.dataInicioVesting + tranche.tempoAposVesting,
+            "WePledge: tranche ainda nao disponivel"
+        );
+
+        // ── EFFECTS ───────────────────────────────────────────────────────────
+        // Calcular valor ANTES de marcar sacada para evitar leitura de estado inconsistente.
+        // Última tranche: usa saldo restante para absorver dust de divisão inteira.
+        // Demais tranches: cálculo proporcional padrão.
+        bool isUltima = (indiceTranche == uint8(totalTranches - 1));
+        uint256 valorTranche = isUltima
+            ? c.valorArrecadado - c.valorJaSacado
+            : (c.valorArrecadado * tranche.percentual) / 100;
+
+        // Marcar tranche como sacada ANTES da transferência (CEI).
+        // Se a transferência falhasse antes desta linha, a tranche ficaria não-sacada
+        // e o criador poderia tentar novamente — correto. Invertida, permitiria duplo-saque.
+        tranche.sacada = true;
+        c.valorJaSacado += valorTranche;
+
+        // Transicionar para Concluida na última tranche.
+        // Estado atualizado antes da transferência: qualquer re-entrada encontraria
+        // estado Concluida e reverteria no require(estado == EmVesting).
+        if (isUltima) {
+            c.estado = EstadoCampanha.Concluida;
+        }
+
+        // ── INTERACTIONS ──────────────────────────────────────────────────────
+        emit TrancheLiberada(idCampanha, indiceTranche, valorTranche);
+        if (isUltima) {
+            emit CampanhaConcluida(idCampanha);
+        }
+
+        // Transferência via call: repassa gas suficiente para fallbacks não-triviais.
+        // Verificação do retorno booleano é obrigatória — `call` não reverte em falha,
+        // apenas retorna false.
+        (bool success, ) = c.criador.call{value: valorTranche}("");
+        require(success, "WePledge: transferencia falhou");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Views auxiliares
     // ─────────────────────────────────────────────────────────────────────────
 
