@@ -357,6 +357,85 @@ contract WePledge is ReentrancyGuard {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Fase 2 — Contribuição
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// @notice Permite que qualquer endereço aporte ETH em uma campanha durante a captação.
+    /// @dev `payable` porque recebe ETH diretamente via msg.value. O contribuinte paga
+    ///      o gas da própria contribuição — design intencional, consistente com pull-payment
+    ///      no reembolso (cada um paga pelo próprio movimento de fundos).
+    ///      `external` porque não há chamada interna; calldata mais barata que memory.
+    ///      Não usa `nonReentrant` porque não realiza chamadas externas — apenas recebe ETH
+    ///      e atualiza storage. Reentrância nesta função exigiria que msg.sender fosse um
+    ///      contrato que chamasse de volta contribuir durante a execução, o que é impossível
+    ///      pois não há nenhuma call de saída aqui.
+    ///
+    ///      Overfunding é permitido: contribuições continuam aceitas após a meta ser atingida,
+    ///      enquanto o prazo não expirou e o criador não finalizou. O excedente vai ao criador
+    ///      via tranches (percentual × valorArrecadado total).
+    ///
+    /// @param idCampanha Identificador da campanha. Deve corresponder a uma campanha existente
+    ///                   em estado Captacao com prazo ainda válido.
+    function contribuir(uint256 idCampanha) external payable {
+        Campanha storage c = campanhas[idCampanha];
+
+        // ── CHECKS ────────────────────────────────────────────────────────────
+        // Ordem de validações: existência primeiro (curto-circuito barato — lê apenas
+        // um campo do storage), depois estado, depois timestamp (SLOAD vs BLOCKTIMESTAMP),
+        // depois valor. Esta ordem minimiza gas desperdiçado em chamadas inválidas.
+
+        // Invariante: campanha existe.
+        // address(0) é o valor default de storage — se criador é zero, o id nunca foi criado.
+        // Sentinela mais barato que um mapping(uint256 => bool) separado ou campo `existe`.
+        require(c.criador != address(0), "WePledge: campanha inexistente");
+
+        // Invariante: campanha em captacao.
+        // Rejeita contribuições em campanhas já finalizadas (EmVesting, Concluida, Fracassada).
+        // Protege contra contribuir após finalizarCampanha — ETH ficaria "perdido" no contrato
+        // sem mecanismo de resgate (saldo não seria contabilizado em reembolso nem em vesting).
+        require(c.estado == EstadoCampanha.Captacao, "WePledge: campanha nao esta em captacao");
+
+        // Invariante: prazo não expirado.
+        // Usa <= (inclusivo): contribuições são aceitas até o segundo exato do prazoCaptacao.
+        // Complementar a marcarFracasso que exige block.timestamp > prazoCaptacao (estrito).
+        // Assim, no bloco exato do prazo: contribuir aceita, marcarFracasso rejeita —
+        // sem sobreposição ambígua no mesmo bloco.
+        require(block.timestamp <= c.prazoCaptacao, "WePledge: prazo de captacao expirou");
+
+        // Invariante: contribuição positiva.
+        // msg.value == 0 não altera estado mas consumiria gas e emitiria evento enganoso.
+        require(msg.value > 0, "WePledge: contribuicao deve ser positiva");
+
+        // ── EFFECTS ───────────────────────────────────────────────────────────
+        // Capturar valorArrecadado ANTES da atualização para detectar cruzamento da meta.
+        // Necessário porque MetaAtingida deve ser emitido apenas no instante do cruzamento,
+        // não em contribuições subsequentes (overfunding).
+        uint256 valorAnterior = c.valorArrecadado;
+
+        // Atualizar saldo individual para suportar pull-payment refund em Fracassada.
+        // += em vez de = para acumular contribuições múltiplas do mesmo endereço.
+        saldoContribuido[idCampanha][msg.sender] += msg.value;
+
+        // Atualizar total arrecadado. Overflow impossível na prática (uint256 max ≈
+        // 1.15 × 10^59 ETH) e impossível na teoria (Solidity 0.8+ reverte em overflow).
+        c.valorArrecadado += msg.value;
+
+        // ── INTERACTIONS ──────────────────────────────────────────────────────
+        // Emitir eventos é a única "interação" desta função — não executa código externo,
+        // portanto não há vetor de reentrância. Emitimos após os EFFECTS por consistência
+        // com CEI, para que qualquer listener veja o estado já atualizado.
+        emit Contribuicao(idCampanha, msg.sender, msg.value);
+
+        // MetaAtingida: emitido apenas no instante exato em que a meta é cruzada.
+        // "Meta atingida" é fato derivado (valorArrecadado >= meta), não estado armazenado.
+        // Emitir o evento marca historicamente o bloco do cruzamento para auditoria.
+        // Condição: valorAnterior < meta E valorAtual >= meta → primeira e única vez que cruza.
+        if (valorAnterior < c.meta && c.valorArrecadado >= c.meta) {
+            emit MetaAtingida(idCampanha, c.valorArrecadado, block.timestamp);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Views auxiliares
     // ─────────────────────────────────────────────────────────────────────────
 
