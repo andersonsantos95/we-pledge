@@ -576,6 +576,102 @@ contract WePledge is ReentrancyGuard {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Fase 4 — Fracasso e reembolso
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// @notice Marca uma campanha como fracassada quando o prazo expirou sem atingir a meta.
+    /// @dev Pode ser chamada por qualquer endereço — não há restrição de msg.sender.
+    ///      Razão: o fracasso é um fato objetivo (prazo expirado + meta não atingida),
+    ///      verificável por qualquer um. Restringir ao criador incentivaria omissão;
+    ///      restringir a contribuintes exigiria rastrear participação só para autorizar
+    ///      uma transição que qualquer observador externo pode acionar legitimamente.
+    ///      Não usa `nonReentrant`: não transfere ETH, apenas atualiza estado.
+    /// @param idCampanha Identificador da campanha a marcar como fracassada.
+    function marcarFracasso(uint256 idCampanha) external {
+        Campanha storage c = campanhas[idCampanha];
+
+        // ── CHECKS ────────────────────────────────────────────────────────────
+        require(c.criador != address(0), "WePledge: campanha inexistente");
+
+        // Invariante: somente campanhas em Captacao podem fracassar.
+        // EmVesting já teve meta atingida e criador agiu — não é fracasso.
+        // Concluida e Fracassada são terminais.
+        require(c.estado == EstadoCampanha.Captacao, "WePledge: campanha nao esta em captacao");
+
+        // Invariante: prazo estritamente expirado.
+        // Usa > (estrito): enquanto block.timestamp == prazoCaptacao, contribuir ainda aceita
+        // (boundary inclusivo). Só após esse instante o fracasso pode ser declarado.
+        require(block.timestamp > c.prazoCaptacao, "WePledge: prazo nao expirou");
+
+        // Invariante: meta não foi atingida.
+        // Se meta foi atingida mas o criador não finalizou, isso é abandono (Fase 5),
+        // não fracasso. Separação importante: fracasso = falta de recurso;
+        // abandono = falta de ação do criador mesmo tendo recurso.
+        require(c.valorArrecadado < c.meta, "WePledge: meta foi atingida");
+
+        // ── EFFECTS ───────────────────────────────────────────────────────────
+        c.estado = EstadoCampanha.Fracassada;
+
+        // ── INTERACTIONS ──────────────────────────────────────────────────────
+        emit CampanhaFracassada(idCampanha, c.valorArrecadado);
+    }
+
+    /// @notice Permite que um contribuinte resgate o ETH aportado em campanha fracassada.
+    /// @dev Pull payment: cada contribuinte chama individualmente e paga o próprio gas.
+    ///      Batch refund foi rejeitado porque: (1) escala mal — iterar todos os contribuintes
+    ///      em loop pode exceder o gas limit do bloco em campanhas grandes; (2) cria ponto
+    ///      único de falha — se um endereço reverter (contrato sem fallback), todos os
+    ///      outros perdem o reembolso; (3) exigiria armazenar array de contribuintes,
+    ///      inflando storage e gas da contribuição.
+    ///
+    ///      `nonReentrant` + CEI em camadas:
+    ///      - CEI: saldo zerado antes da transferência; re-entrada encontraria saldo 0
+    ///        e reverteria no require. Elimina o vetor lógico de duplo-reembolso.
+    ///      - nonReentrant: trava mutex do ReentrancyGuard; elimina o vetor físico
+    ///        mesmo que CEI fosse violado por refatoração futura.
+    ///
+    ///      Transferência via `call{value}("")` — mesma justificativa de sacarTranche:
+    ///      `transfer`/`send` limitam o stipend a 2300 gas, quebrando contratos com
+    ///      fallback não-trivial. `call` repassa gas suficiente; retorno verificado.
+    ///
+    /// @param idCampanha Identificador da campanha fracassada.
+    function reembolsar(uint256 idCampanha) external nonReentrant {
+        Campanha storage c = campanhas[idCampanha];
+
+        // ── CHECKS ────────────────────────────────────────────────────────────
+        require(c.criador != address(0), "WePledge: campanha inexistente");
+
+        // Invariante: reembolso só disponível em campanhas Fracassadas.
+        // Inclui tanto fracasso por meta (marcarFracasso) quanto abandono (marcarAbandono).
+        // Estado único para ambos os caminhos simplifica validação aqui e no frontend.
+        require(c.estado == EstadoCampanha.Fracassada, "WePledge: campanha nao esta fracassada");
+
+        uint256 saldo = saldoContribuido[idCampanha][msg.sender];
+
+        // Invariante: apenas quem contribuiu pode reembolsar, e apenas uma vez.
+        // saldo == 0 cobre dois casos: (1) nunca contribuiu; (2) já reembolsou.
+        // Mensagem de erro única intencional — distinguir os casos vazaria informação
+        // sobre outros contribuintes sem benefício prático.
+        require(saldo > 0, "WePledge: sem saldo para reembolso");
+
+        // ── EFFECTS ───────────────────────────────────────────────────────────
+        // Zerar ANTES de transferir (CEI). Se a transferência falhasse após esta linha,
+        // o contribuinte perderia o reembolso — mas isso é impossível com `call` a um
+        // EOA (sempre sucede) e improvável com contrato bem-implementado. Em qualquer caso,
+        // o contributor pode tentar novamente numa tx diferente sem risco de duplo-saque
+        // porque o saldo já estaria zerado na falha e o require acima bloquearia.
+        // Invertida (transferir antes de zerar), um contrato malicioso poderia re-entrar
+        // antes do zero e drenar todos os fundos da campanha.
+        saldoContribuido[idCampanha][msg.sender] = 0;
+
+        // ── INTERACTIONS ──────────────────────────────────────────────────────
+        emit Reembolso(idCampanha, msg.sender, saldo);
+
+        (bool success, ) = msg.sender.call{value: saldo}("");
+        require(success, "WePledge: transferencia falhou");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Views auxiliares
     // ─────────────────────────────────────────────────────────────────────────
 
