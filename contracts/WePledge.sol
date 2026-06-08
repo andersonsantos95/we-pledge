@@ -672,6 +672,65 @@ contract WePledge is ReentrancyGuard {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Fase 5 — Abandono
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// @notice Marca campanha como Fracassada quando criador não finalizou dentro da janela composta.
+    /// @dev Pode ser chamada por qualquer endereço — fato objetivo verificável por qualquer um.
+    ///
+    ///      Caso de uso: meta foi atingida mas o criador desapareceu sem chamar finalizarCampanha.
+    ///      Após prazoCaptacao + JANELA_FINALIZACAO + JANELA_ABANDONO, contribuintes recuperam aportes.
+    ///
+    ///      Distinção de marcarFracasso:
+    ///        marcarFracasso   → meta NÃO atingida + prazo expirado (falta de recurso)
+    ///        marcarAbandono   → meta ATINGIDA + janela composta expirada (falta de ação do criador)
+    ///      Os dois caminhos são mutuamente exclusivos e levam ao mesmo estado terminal (Fracassada),
+    ///      mas são auditáveis via eventos distintos (CampanhaFracassada vs CampanhaAbandonada).
+    ///
+    ///      Janela composta:
+    ///        [prazoCaptacao, prazoCaptacao + JANELA_FINALIZACAO]    → criador pode finalizar
+    ///        [prazoCaptacao + JANELA_FINALIZACAO + JANELA_ABANDONO] → qualquer um pode marcar abandono
+    ///      O criador pode chamar finalizarCampanha a qualquer momento enquanto o estado é Captacao —
+    ///      se ele finalizar antes de alguém chamar marcarAbandono, a campanha transiciona para
+    ///      EmVesting e marcarAbandono rejeita (estado incorreto).
+    ///
+    ///      Não usa nonReentrant: não transfere ETH, apenas atualiza estado.
+    /// @param idCampanha Identificador da campanha com meta atingida e janela de abandono expirada.
+    function marcarAbandono(uint256 idCampanha) external {
+        Campanha storage c = campanhas[idCampanha];
+
+        // ── CHECKS ────────────────────────────────────────────────────────────
+        require(c.criador != address(0), "WePledge: campanha inexistente");
+
+        // Invariante: só campanhas em Captacao podem ser marcadas como abandonadas.
+        // EmVesting significa que o criador JÁ agiu (finalizou); a campanha não foi abandonada.
+        // Concluida e Fracassada são estados terminais.
+        require(c.estado == EstadoCampanha.Captacao, "WePledge: campanha nao esta em captacao");
+
+        // Invariante: meta deve ter sido atingida.
+        // Se a meta não foi atingida, o caminho correto é marcarFracasso (Fase 4).
+        // Esta verificação garante a exclusividade mútua dos dois caminhos de fracasso.
+        require(c.valorArrecadado >= c.meta, "WePledge: meta nao foi atingida");
+
+        // Invariante: janela de abandono expirada.
+        // Usa > (estrito): no segundo exato do limite, o criador ainda pode finalizar.
+        // A janela é composta: JANELA_FINALIZACAO (exclusiva do criador) + JANELA_ABANDONO (graça).
+        // Overflow impossível na prática — prazoCaptacao é timestamp Unix (<<< uint256 max).
+        require(
+            block.timestamp > c.prazoCaptacao + JANELA_FINALIZACAO + JANELA_ABANDONO,
+            "WePledge: janela de abandono nao expirou"
+        );
+
+        // ── EFFECTS ───────────────────────────────────────────────────────────
+        // Estado Fracassada é o mesmo de marcarFracasso — reembolsar() aceita ambos os caminhos.
+        c.estado = EstadoCampanha.Fracassada;
+
+        // ── INTERACTIONS ──────────────────────────────────────────────────────
+        // Evento distinto de CampanhaFracassada para manter auditabilidade do motivo.
+        emit CampanhaAbandonada(idCampanha);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Views auxiliares
     // ─────────────────────────────────────────────────────────────────────────
 
