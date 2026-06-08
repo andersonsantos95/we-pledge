@@ -1,0 +1,38 @@
+<header class="header">
+  <div class="container header-inner">
+    <!-- Logo -->
+    <a routerLink="/" class="logo">
+      <span class="logo-icon">⬡</span>
+      <span class="logo-text">WePledge</span>
+    </a>
+
+    <!-- Nav -->
+    <nav class="nav">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        Campanhas
+      </a>
+      <a routerLink="/criar" routerLinkActive="active">Nova Campanha</a>
+    </nav>
+
+    <!-- Wallet -->
+    <div class="wallet-area">
+      @if (wallet.isConnected()) {
+        <div class="wallet-connected">
+          <div class="wallet-dot"></div>
+          <span class="wallet-addr">{{ wallet.shortAddress(wallet.address()!) }}</span>
+          <button class="btn btn-outline btn-sm" (click)="onDisconnect()">Desconectar</button>
+        </div>
+      } @else {
+        <button class="btn btn-primary btn-sm" (click)="onConnect()" [disabled]="loading()">
+          @if (loading()) { Conectando… } @else { Conectar Carteira }
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="container">
+      <div class="header-error">{{ error() }}</div>
+    </div>
+  }
+</header>

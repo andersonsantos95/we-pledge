@@ -1,0 +1,64 @@
+<section class="hero container">
+  <div class="hero-content">
+    <h1 class="hero-title">Crowdfunding <span class="gradient-text">descentralizado</span></h1>
+    <p class="hero-sub">
+      Apoie projetos com garantia de reembolso por código.<br>
+      Fundos liberados ao criador em parcelas — sem intermediários.
+    </p>
+    <a routerLink="/criar" class="btn btn-primary">+ Nova Campanha</a>
+  </div>
+</section>
+
+<main class="container">
+  @if (loading()) {
+    <div class="loading-grid">
+      @for (i of [1,2,3]; track i) {
+        <div class="card skeleton"></div>
+      }
+    </div>
+  } @else if (error()) {
+    <div class="error-msg">{{ error() }}</div>
+  } @else if (campaigns().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <p>Nenhuma campanha ainda.</p>
+      <a routerLink="/criar" class="btn btn-primary">Criar a primeira</a>
+    </div>
+  } @else {
+    <div class="campaigns-grid">
+      @for (c of campaigns(); track c.id) {
+        <div class="campaign-card">
+          <div class="card-header">
+            <span class="campaign-id">#{{ c.id }}</span>
+            <span class="badge {{ STATE_CSS[c.estado] }}">{{ STATE_LABELS[c.estado] }}</span>
+          </div>
+
+          <div class="progress-section">
+            <div class="amounts">
+              <span class="raised">{{ formatEth(c.valorArrecadado) }} ETH</span>
+              <span class="meta">meta: {{ formatEth(c.meta) }} ETH</span>
+            </div>
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" [style.width.%]="progress(c)"></div>
+            </div>
+            <div class="progress-pct">{{ progress(c) | number:'1.0-0' }}%</div>
+          </div>
+
+          <div class="card-meta">
+            <div class="meta-row">
+              <span class="meta-label">Prazo</span>
+              <span [class.expired]="isExpired(c.prazoCaptacao)">
+                {{ formatDeadline(c.prazoCaptacao) }}
+                @if (isExpired(c.prazoCaptacao)) { <span class="tag-expired">expirado</span> }
+              </span>
+            </div>
+          </div>
+
+          <a [routerLink]="['/campanha', c.id.toString()]" class="btn btn-outline" style="width:100%; margin-top:12px">
+            Ver detalhes
+          </a>
+        </div>
+      }
+    </div>
+  }
+</main>

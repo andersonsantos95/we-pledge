@@ -1,0 +1,98 @@
+<div class="container page">
+  <div class="page-header">
+    <h1>Nova Campanha</h1>
+    <p class="page-sub">Defina a meta, o prazo e o cronograma de liberação dos fundos.</p>
+  </div>
+
+  @if (success()) {
+    <div class="success-msg">
+      ✓ Campanha #{{ success() }} criada! Redirecionando…
+    </div>
+  }
+
+  @if (error()) {
+    <div class="error-msg">{{ error() }}</div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-card card">
+
+    <!-- Meta -->
+    <div class="form-group">
+      <label for="meta">Meta (ETH)</label>
+      <input id="meta" type="number" formControlName="meta" placeholder="0.1" step="0.001" min="0" />
+      @if (form.get('meta')?.invalid && form.get('meta')?.touched) {
+        <span class="field-error">Informe uma meta válida (deve ser maior que 0 ETH)</span>
+      }
+    </div>
+
+    <!-- Prazo -->
+    <div class="form-group">
+      <label for="prazo">Prazo de captação</label>
+      <input id="prazo" type="datetime-local" formControlName="prazo"
+        [min]="minPrazo" [max]="maxPrazoStr" />
+      @if (form.get('prazo')?.invalid && form.get('prazo')?.touched) {
+        <span class="field-error">Selecione uma data futura</span>
+      }
+      @if (prazoExcedeMaximo() && form.get('prazo')?.touched) {
+        <span class="field-error">Prazo excede o limite máximo permitido pelo contrato</span>
+      }
+    </div>
+
+    <!-- Cronograma de tranches -->
+    <div class="section-title">
+      <span>Cronograma de liberação</span>
+      <span class="total-pct" [class.pct-ok]="percentualOk" [class.pct-err]="!percentualOk">
+        Total: {{ totalPercentual }}%
+      </span>
+    </div>
+
+    @if (!percentualOk) {
+      <div class="warn-msg">Os percentuais devem somar exatamente 100%</div>
+    }
+    @if (!isStrictlyIncreasing()) {
+      <div class="warn-msg">Os dias devem ser estritamente crescentes</div>
+    }
+
+    <div formArrayName="tranches" class="tranches-list">
+      @for (tranche of tranches.controls; track $index) {
+        <div class="tranche-row" [formGroupName]="$index">
+          <div class="tranche-index">#{{ $index + 1 }}</div>
+
+          <div class="tranche-fields">
+            <div class="form-group mb0">
+              <label>Percentual (%)</label>
+              <input type="number" formControlName="percentual" min="1" max="100" />
+              @if (trancheAt($index).get('percentual')?.invalid && trancheAt($index).get('percentual')?.touched) {
+                <span class="field-error">Deve ser entre 1 e 100</span>
+              }
+            </div>
+            <div class="form-group mb0">
+              <label>
+                Dias após início do vesting
+                @if ($index === 0) { <span class="tip">(0 = imediato)</span> }
+              </label>
+              <input type="number" formControlName="dias" [min]="$index === 0 ? 0 : 1" />
+            </div>
+          </div>
+
+          @if (tranches.length > 1) {
+            <button type="button" class="btn-remove" (click)="removeTranche($index)" title="Remover">✕</button>
+          }
+        </div>
+      }
+    </div>
+
+    @if (tranches.length < MAX_TRANCHES) {
+      <button type="button" class="btn btn-outline btn-sm add-tranche" (click)="addTranche()">
+        + Adicionar tranche
+      </button>
+    }
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary"
+        [disabled]="form.invalid || !percentualOk || !isStrictlyIncreasing() || prazoExcedeMaximo() || loading()">
+        @if (loading()) { Criando… } @else { Criar Campanha }
+      </button>
+    </div>
+  </form>
+</div>

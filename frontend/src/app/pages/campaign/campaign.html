@@ -1,0 +1,209 @@
+<div class="container page">
+  <a routerLink="/" class="back-link">← Todas as campanhas</a>
+
+  @if (loading()) {
+    <div class="card skeleton" style="height:400px; margin-top:24px;"></div>
+  } @else if (error()) {
+    <div class="error-msg" style="margin-top:24px">{{ error() }}</div>
+  } @else if (c) {
+
+    <!-- Hero -->
+    <div class="campaign-hero">
+      <div class="hero-left">
+        <div class="hero-id">Campanha #{{ c.id }}</div>
+        <span class="badge {{ STATE_CSS[c.estado] }}">{{ STATE_LABELS[c.estado] }}</span>
+      </div>
+    </div>
+
+    <!-- Grid principal -->
+    <div class="main-grid">
+
+      <!-- Coluna esquerda: info + progresso -->
+      <div class="info-col">
+        <div class="card">
+          <div class="stat-grid">
+            <div class="stat">
+              <div class="stat-label">Arrecadado</div>
+              <div class="stat-value highlight">{{ formatEth(c.valorArrecadado) }} ETH</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Meta</div>
+              <div class="stat-value">{{ formatEth(c.meta) }} ETH</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Criador</div>
+              <div class="stat-value mono">{{ wallet.shortAddress(c.criador) }}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Prazo de captação</div>
+              <div class="stat-value" [class.text-danger]="deadlineExpired">
+                {{ formatTs(c.prazoCaptacao) }}
+              </div>
+            </div>
+          </div>
+
+          <div class="progress-section">
+            <div class="progress-bar-track progress-lg">
+              <div class="progress-bar-fill" [style.width.%]="progress()"></div>
+            </div>
+            <div class="progress-pct">{{ progress() | number:'1.0-1' }}% da meta</div>
+          </div>
+        </div>
+
+        <!-- Cronograma de vesting -->
+        @if (c.cronograma.length > 0) {
+          <div class="card" style="margin-top:16px">
+            <h3 class="section-title">Cronograma de Vesting</h3>
+            <table class="tranche-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>%</th>
+                  <th>Valor</th>
+                  <th>Disponível</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (t of c.cronograma; track $index) {
+                  <tr>
+                    <td>{{ $index + 1 }}</td>
+                    <td>{{ t.percentual }}%</td>
+                    <td>~{{ trancheEth(c.meta, t.percentual) }} ETH</td>
+                    <td class="small-date">{{ trancheAvailableAt(t) }}</td>
+                    <td>
+                      @if (t.sacada) {
+                        <span class="badge badge-concluida">Sacada</span>
+                      } @else if (isTrancheLocked(t)) {
+                        <span class="badge badge-captacao">Aguardando</span>
+                      } @else if (c.estado === CampaignState.EmVesting) {
+                        <span class="badge badge-vesting">Disponível</span>
+                      } @else {
+                        <span class="badge" style="color:var(--text-muted)">—</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+      <!-- Coluna direita: ações -->
+      <div class="actions-col">
+        <div class="card actions-card">
+          <h3 class="section-title">Ações</h3>
+
+          @if (txSuccess()) {
+            <div class="tx-success">{{ txSuccess() }}</div>
+          }
+          @if (txError()) {
+            <div class="error-msg">{{ txError() }}</div>
+          }
+
+          <!-- Contribuir -->
+          @if (canContribute) {
+            <div class="action-block">
+              <h4>Contribuir</h4>
+              <div class="form-group">
+                <label>Valor (ETH)</label>
+                <input type="number" [(ngModel)]="contributeAmount"
+                  placeholder="0.01" step="0.001" min="0.001" />
+              </div>
+              <button class="btn btn-primary" style="width:100%"
+                (click)="contribute()" [disabled]="txLoading()">
+                @if (txLoading()) { Processando… } @else { Contribuir }
+              </button>
+            </div>
+          }
+
+          <!-- Meu saldo (se fracassada) -->
+          @if (c.estado === CampaignState.Fracassada && wallet.isConnected()) {
+            <div class="my-balance">
+              Meu saldo: <strong>{{ formatEth(myBalance()) }} ETH</strong>
+            </div>
+          }
+
+          <!-- Finalizar (criador) -->
+          @if (canFinalize) {
+            <div class="action-block">
+              <h4>Iniciar Vesting</h4>
+              <p class="action-desc">Meta atingida. Clique para finalizar a captação e iniciar a liberação das tranches.</p>
+              <button class="btn btn-success" style="width:100%"
+                (click)="finalize()" [disabled]="txLoading()">
+                @if (txLoading()) { Processando… } @else { Finalizar Campanha }
+              </button>
+            </div>
+          }
+
+          <!-- Sacar tranche (criador) -->
+          @if (canClaimTranche) {
+            <div class="action-block">
+              <h4>Sacar Próxima Tranche</h4>
+              @if (nextTranche) {
+                <p class="action-desc">
+                  Tranche de {{ nextTranche.percentual }}%
+                  (~{{ trancheEth(c.valorArrecadado, nextTranche.percentual) }} ETH) disponível.
+                </p>
+              }
+              <button class="btn btn-primary" style="width:100%"
+                (click)="claimTranche()" [disabled]="txLoading()">
+                @if (txLoading()) { Processando… } @else { Sacar Tranche }
+              </button>
+            </div>
+          }
+
+          <!-- Marcar fracasso -->
+          @if (canMarkFailure) {
+            <div class="action-block">
+              <h4>Marcar como Fracassada</h4>
+              <p class="action-desc">O prazo expirou sem atingir a meta. Contribuintes poderão solicitar reembolso.</p>
+              <button class="btn btn-danger" style="width:100%"
+                (click)="markFailure()" [disabled]="txLoading()">
+                @if (txLoading()) { Processando… } @else { Marcar Fracasso }
+              </button>
+            </div>
+          }
+
+          <!-- Marcar abandono -->
+          @if (canMarkAbandonment) {
+            <div class="action-block">
+              <h4>Marcar como Abandonada</h4>
+              <p class="action-desc">A meta foi atingida mas o criador não finalizou dentro do prazo. Reembolsos serão liberados.</p>
+              <button class="btn btn-warning" style="width:100%"
+                (click)="markAbandonment()" [disabled]="txLoading()">
+                @if (txLoading()) { Processando… } @else { Marcar Abandono }
+              </button>
+            </div>
+          }
+
+          <!-- Reembolsar -->
+          @if (canRefund) {
+            <div class="action-block">
+              <h4>Solicitar Reembolso</h4>
+              <p class="action-desc">
+                Você tem <strong>{{ formatEth(myBalance()) }} ETH</strong> para resgatar.
+              </p>
+              <button class="btn btn-primary" style="width:100%"
+                (click)="refund()" [disabled]="txLoading()">
+                @if (txLoading()) { Processando… } @else { Reembolsar }
+              </button>
+            </div>
+          }
+
+          <!-- Sem ação disponível -->
+          @if (!canContribute && !canFinalize && !canClaimTranche &&
+               !canMarkFailure && !canMarkAbandonment && !canRefund) {
+            <p class="no-action">Nenhuma ação disponível no momento.</p>
+          }
+
+          @if (!wallet.isConnected()) {
+            <p class="connect-hint">Conecte a carteira para interagir com a campanha.</p>
+          }
+        </div>
+      </div>
+
+    </div>
+  }
+</div>
