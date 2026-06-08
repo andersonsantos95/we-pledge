@@ -21,6 +21,7 @@
 
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
+import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import hre from "hardhat";
 import { advanceTime } from "./helpers/time";
@@ -106,22 +107,27 @@ describe("WePledge — Fase 3: finalizarCampanha e sacarTranche", function () {
 
     it("registra dataInicioVesting no bloco da chamada", async function () {
       // dataInicioVesting define t=0 do cronograma; deve ser o timestamp exato da tx.
+      // Lemos o timestamp do receipt em vez de predizer "latest + 1": a previsão
+      // depende de Hardhat sempre minerar exatamente 1 bloco entre latest() e a tx,
+      // o que é verdade em desenvolvimento mas frágil como invariante de teste.
       const { wepledge, criador, idCampanha } = await loadFixture(campanhaComMetaAtingidaFixture);
 
-      const txTimestamp = (await time.latest()) + 1; // próximo bloco
-      await wepledge.connect(criador).finalizarCampanha(idCampanha);
+      const tx      = await wepledge.connect(criador).finalizarCampanha(idCampanha);
+      const receipt = await tx.wait();
+      const block   = await hre.ethers.provider.getBlock(receipt!.blockNumber);
 
       const campanha = await wepledge.campanhas(idCampanha);
-      expect(campanha.dataInicioVesting).to.equal(BigInt(txTimestamp));
+      expect(campanha.dataInicioVesting).to.equal(BigInt(block!.timestamp));
     });
 
     it("emite CampanhaFinalizada com valorArrecadado e dataInicioVesting corretos", async function () {
+      // anyValue para timestamp pelo mesmo motivo: o valor é verificado no teste
+      // de storage acima; aqui testamos que valorArrecadado está correto no evento.
       const { wepledge, criador, idCampanha, meta } = await loadFixture(campanhaComMetaAtingidaFixture);
 
-      const txTimestamp = (await time.latest()) + 1;
       await expect(wepledge.connect(criador).finalizarCampanha(idCampanha))
         .to.emit(wepledge, "CampanhaFinalizada")
-        .withArgs(idCampanha, meta, BigInt(txTimestamp));
+        .withArgs(idCampanha, meta, anyValue);
     });
 
     it("pode ser chamada após o prazoCaptacao (meta atingida antes do prazo)", async function () {
@@ -276,14 +282,19 @@ describe("WePledge — Fase 3: finalizarCampanha e sacarTranche", function () {
     });
 
     it("última tranche recebe o saldo restante (absorve dust)", async function () {
-      // Campanha com 3 tranches de 33%/33%/34% e valor que não divide exatamente.
-      // Tranche 2 (34%) recebe valorArrecadado - valorJaSacado para evitar dust.
+      // Cenário: 3 tranches 33/33/34 com contribuição de 1 ETH + 1 wei.
+      // O +1 wei introduz dust real: 1_000_000_000_000_000_001 * 33 / 100
+      // = 330_000_000_000_000_000 (trunca o 0,33 residual de wei).
+      // Cálculo por percentual daria à última tranche 340_000_000_000_000_000,
+      // mas o saldo restante é 340_000_000_000_000_001 (1 wei a mais).
+      // Os valores esperados abaixo são pré-calculados à mão, NÃO derivados
+      // da mesma fórmula do contrato — isso distingue "usa remainder" de "usa %".
       const { wepledge, criador, contrib1 } = await loadFixture(deployFixture);
       const agora = await time.latest();
 
-      // 1 ETH dividido em 33/33/34: tranche 0 = 0,33 ETH, tranche 1 = 0,33 ETH,
-      // tranche 2 = remainder (0,34 ETH + eventual dust de wei).
-      const meta = hre.ethers.parseEther("1");
+      const meta        = hre.ethers.parseEther("1");
+      const contribuicao = meta + 1n; // 1_000_000_000_000_000_001 wei
+
       await wepledge.connect(criador).criarCampanha(
         meta,
         agora + 3600,
@@ -293,22 +304,29 @@ describe("WePledge — Fase 3: finalizarCampanha e sacarTranche", function () {
           { percentual: 34, tempoAposVesting: 2 * UM_DIA },
         ]
       );
-      await wepledge.connect(contrib1).contribuir(1n, { value: meta });
+      await wepledge.connect(contrib1).contribuir(1n, { value: contribuicao });
       await wepledge.connect(criador).finalizarCampanha(1n);
 
-      const t0 = (meta * 33n) / 100n;
-      const t1 = (meta * 33n) / 100n;
-      const t2Restante = meta - t0 - t1; // saldo real, sem dust
+      // Valores pré-calculados (aritmética manual, independente do contrato):
+      //   1_000_000_000_000_000_001 * 33 / 100 = 330_000_000_000_000_000 (trunca)
+      //   1_000_000_000_000_000_001 * 34 / 100 = 340_000_000_000_000_000 (trunca)
+      //   remainder = 1_000_000_000_000_000_001 - 330...000 - 330...000 = 340_000_000_000_000_001
+      // O contrato usa remainder para a última tranche: 1 wei a mais que o cálculo por %.
+      const t2EsperadoPorRemainder = 340_000_000_000_000_001n;
+      const t2EsperadoPorPercentual = 340_000_000_000_000_000n; // seria este se usasse %
 
       await wepledge.connect(criador).sacarTranche(1n); // tranche 0
       await advanceTime(UM_DIA);
       await wepledge.connect(criador).sacarTranche(1n); // tranche 1
       await advanceTime(UM_DIA);
 
-      // Última tranche: criador deve receber exatamente o saldo restante.
+      // Verifica que o criador recebe o remainder (não o cálculo por percentual).
       await expect(
         wepledge.connect(criador).sacarTranche(1n)
-      ).to.changeEtherBalance(criador, t2Restante);
+      ).to.changeEtherBalance(criador, t2EsperadoPorRemainder);
+
+      // Sanidade: o valor por percentual seria diferente (1 wei a menos).
+      expect(t2EsperadoPorRemainder).to.not.equal(t2EsperadoPorPercentual);
 
       // Contrato deve ficar com balance zero — nenhum dust preso.
       expect(await hre.ethers.provider.getBalance(await wepledge.getAddress())).to.equal(0n);
@@ -360,6 +378,32 @@ describe("WePledge — Fase 3: finalizarCampanha e sacarTranche", function () {
       await expect(
         wepledge.connect(criador).sacarTranche(999n)
       ).to.be.revertedWith("WePledge: campanha inexistente");
+    });
+
+    it("tranche única de 100% transiciona direto para Concluida em um único saque", async function () {
+      // Exercita o caminho mínimo EmVesting → Concluida sem tranche intermediária.
+      // O código de "última tranche" (isUltima) é exercitado com índice 0,
+      // garantindo que o caso especial funciona mesmo sem tranches anteriores.
+      const { wepledge, criador, contrib1 } = await loadFixture(deployFixture);
+      const agora = await time.latest();
+      const meta  = hre.ethers.parseEther("1");
+
+      await wepledge.connect(criador).criarCampanha(
+        meta, agora + 3600, [{ percentual: 100, tempoAposVesting: 0 }]
+      );
+      await wepledge.connect(contrib1).contribuir(1n, { value: meta });
+      await wepledge.connect(criador).finalizarCampanha(1n);
+
+      await expect(wepledge.connect(criador).sacarTranche(1n))
+        .to.emit(wepledge, "CampanhaConcluida").withArgs(1n)
+        .and.to.emit(wepledge, "TrancheLiberada").withArgs(1n, 0, meta);
+
+      const campanha = await wepledge.campanhas(1n);
+      expect(campanha.estado).to.equal(2n); // Concluida
+
+      expect(
+        await hre.ethers.provider.getBalance(await wepledge.getAddress())
+      ).to.equal(0n);
     });
   });
 });

@@ -131,12 +131,27 @@ describe("WePledge — Fase 4: marcarFracasso e reembolsar", function () {
       ).to.not.be.reverted;
     });
 
-    it("rejeita se o prazo ainda não expirou", async function () {
-      // Boundary: 1 segundo antes do prazo, marcarFracasso deve falhar.
+    it("rejeita se o prazo ainda não expirou (1s antes)", async function () {
       const { wepledge, terceiro, idCampanha, prazoCaptacao } = await loadFixture(campanhaAbertaSubMetaFixture);
 
       await time.setNextBlockTimestamp(prazoCaptacao - 1);
       await hre.ethers.provider.send("evm_mine", []);
+
+      await expect(
+        wepledge.connect(terceiro).marcarFracasso(idCampanha)
+      ).to.be.revertedWith("WePledge: prazo nao expirou");
+    });
+
+    it("rejeita marcarFracasso exatamente no segundo do prazoCaptacao (boundary estrito)", async function () {
+      // Contrato usa > (estrito) no prazo: ao segundo exato do prazoCaptacao,
+      // contribuir ainda aceita (usa <=) mas marcarFracasso ainda rejeita.
+      // Este teste valida a complementaridade dos dois checks de boundary.
+      // Não mineramos antes: setNextBlockTimestamp sem evm_mine faz a própria tx
+      // minerar em prazoCaptacao. Com evm_mine antes, a tx seguinte seria prazoCaptacao+1
+      // que já passaria a condição > e o teste falharia.
+      const { wepledge, terceiro, idCampanha, prazoCaptacao } = await loadFixture(campanhaAbertaSubMetaFixture);
+
+      await time.setNextBlockTimestamp(prazoCaptacao);
 
       await expect(
         wepledge.connect(terceiro).marcarFracasso(idCampanha)
