@@ -5,6 +5,10 @@ typechain-types/
 coverage.json
 gas-report.txt
 
+# ── Deployments locais (efêmeros, não versionados) ────
+deployments/hardhat.json
+deployments/localhost.json
+
 # ── OS ────────────────────────────────────
 .DS_Store
 Thumbs.db
