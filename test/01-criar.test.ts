@@ -490,6 +490,23 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
   });
 
   // ── Isolamento entre campanhas ───────────────────────────────────────────────
+  // ── Proteção contra envio direto de ETH ──────────────────────────────────────
+  describe("receive() — rejeição de ETH direto", function () {
+
+    it("rejeita ETH enviado diretamente ao contrato (sem calldata)", async function () {
+      // Invariante: ETH deve entrar apenas via contribuir(). Envio direto ficaria
+      // inacessível pois não é rastreado em nenhuma campanha.
+      const { wepledge, terceiro } = await loadFixture(deployFixture);
+
+      await expect(
+        terceiro.sendTransaction({
+          to: await wepledge.getAddress(),
+          value: hre.ethers.parseEther("1"),
+        })
+      ).to.be.revertedWith("WePledge: use contribuir()");
+    });
+  });
+
   describe("isolamento de storage entre campanhas", function () {
     it("campanha inexistente (id 0) retorna endereço zero no criador", async function () {
       // Verifica o sentinela: id 0 nunca foi criado, storage default é address(0).

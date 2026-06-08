@@ -9,15 +9,32 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 ///         se não for atingida, contribuintes recebem reembolso garantido por código.
 ///         Se for atingida, os fundos são liberados ao criador em parcelas por tempo (vesting),
 ///         reduzindo o risco de "criador some com o dinheiro".
-/// @dev Herda ReentrancyGuard da OpenZeppelin para proteção em profundidade nas funções
-///      que transferem ETH (sacarTranche e reembolsar). criarCampanha e contribuir não
-///      precisam do modifier porque não realizam chamadas externas (contribuir só recebe ETH).
+/// @dev Máquina de estados:
+///        Captacao → (finalizarCampanha)  → EmVesting → (sacarTranche × n) → Concluida
+///        Captacao → (marcarFracasso)     → Fracassada → reembolsar disponível
+///        Captacao → (marcarAbandono)     → Fracassada → reembolsar disponível
+///      Transições são explícitas e requerem gas — blockchain não tem scheduler.
 ///
-///      Máquina de estados:
-///        Captacao → EmVesting → Concluida
-///        Captacao → Fracassada
-///      Transições são explícitas: nenhuma transição ocorre "automaticamente" —
-///      blockchain não tem scheduler, alguém sempre paga o gas da transição.
+///      Auditoria de reentrância:
+///        sacarTranche — nonReentrant + CEI:  tranche.sacada, valorJaSacado e c.estado
+///                       são atualizados ANTES da call ao criador. Re-entrada encontraria
+///                       estado Concluida (última tranche) ou sacada=true, revertendo.
+///        reembolsar   — nonReentrant + CEI:  saldo zerrado ANTES da call a msg.sender.
+///                       Re-entrada encontraria saldo 0 e reverteria no require.
+///        Nota sobre atomicidade: se a call externa falhar e require(success) reverter,
+///        TODO o estado da transação é desfeito (EVM atomicidade). O saldo ou a tranche
+///        voltam ao valor anterior — o caller pode tentar novamente numa tx separada.
+///        Demais funções — sem call externa; nonReentrant desnecessário.
+///        O mutex global do OpenZeppelin ReentrancyGuard bloqueia cross-function
+///        reentrancy: enquanto sacarTranche ou reembolsar executa, nenhuma outra
+///        função nonReentrant do contrato pode ser re-entrada.
+///
+///      Padrão pull-payment: reembolsar() e sacarTranche() são puxados pelo beneficiário,
+///      não empurrados pelo contrato. Elimina ponto único de falha do batch-refund e
+///      escala para número arbitrário de contribuintes.
+///
+///      Sem receive() nem fallback() úteis: ETH entra exclusivamente via contribuir().
+///      Envio direto ao endereço do contrato reverte com mensagem explícita.
 contract WePledge is ReentrancyGuard {
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -747,7 +764,23 @@ contract WePledge is ReentrancyGuard {
 
     /// @notice Retorna o número de tranches do cronograma de uma campanha.
     /// @dev Útil para iterar o cronograma no frontend sem carregar o array inteiro.
+    ///      Campanha inexistente retorna 0 (cronograma vazio por default de storage).
+    /// @param id Identificador da campanha.
+    /// @return Número de tranches no cronograma (0 se a campanha não existe).
     function getTotalTranches(uint256 id) external view returns (uint256) {
         return campanhas[id].cronograma.length;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Proteção contra envio direto de ETH
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// @notice Rejeita ETH enviado diretamente ao contrato.
+    /// @dev ETH deve entrar exclusivamente via contribuir(). Um envio direto (sem calldata
+    ///      para uma função payable) não seria creditado a nenhuma campanha — ficaria
+    ///      inacessível pois não há mecanismo de resgate para ETH não-rastreado.
+    ///      Reverter explicitamente com mensagem é preferível ao revert opaco padrão.
+    receive() external payable {
+        revert("WePledge: use contribuir()");
     }
 }
