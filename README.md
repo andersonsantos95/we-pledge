@@ -31,14 +31,21 @@ Captacao → (criador some, janela expirada)     → Fracassada → reembolsos d
 
 ```
 contracts/
-  WePledge.sol          Contrato principal
-scripts/                Deploy e utilitários (em desenvolvimento)
+  WePledge.sol              Contrato principal
+scripts/
+  deploy.ts                 Deploy do contrato (produção ou modo demo)
+  seed.ts                   Seed de demonstração: cria campanha, contribui, finaliza e saca
+deployments/
+  sepolia.json              Endereço e parâmetros do último deploy na Sepolia (gerado pelo deploy.ts)
 test/
   helpers/
-    time.ts             Helpers de manipulação de tempo nos testes
-  01-criar.test.ts      Fase 1: criarCampanha
-frontend/               Interface web (Next.js + Ethers.js v6) — em desenvolvimento
-docs/                   Documentação técnica adicional
+    time.ts                 Helpers de manipulação de tempo nos testes
+  01-criar.test.ts          Fase 1: criarCampanha
+  02-captacao.test.ts       Fase 2: contribuir
+  03-vesting.test.ts        Fase 3: finalizarCampanha e sacarTranche
+  04-fracasso-reembolso.test.ts  Fase 4: marcarFracasso e reembolsar
+  05-abandono.test.ts       Fase 5: marcarAbandono
+frontend/                   Interface web (Next.js + Ethers.js v6) — em desenvolvimento
 ```
 
 ## Como executar
@@ -64,13 +71,13 @@ npx hardhat compile
 ### Rodar testes
 
 ```bash
-npx hardhat test
+npm test
 ```
 
 Com relatório de gas:
 
 ```bash
-REPORT_GAS=true npx hardhat test
+npm run test:gas
 ```
 
 ### Deploy na Sepolia
@@ -79,8 +86,31 @@ Copie `.env.example` para `.env` e preencha as variáveis:
 
 ```bash
 cp .env.example .env
-npx hardhat run scripts/deploy.ts --network sepolia
 ```
+
+**Modo demo** — janelas curtas (2 min finalização / 5 min abandono) para apresentação ao vivo:
+
+```bash
+DEMO=true npx hardhat run scripts/deploy.ts --network sepolia
+```
+
+**Modo produção** — janelas longas (7 dias / 30 dias):
+
+```bash
+npm run deploy:sepolia
+```
+
+O endereço e os parâmetros do deploy são salvos em `deployments/sepolia.json`.
+
+### Seed de demonstração
+
+Após o deploy, cria uma campanha, contribui até a meta, finaliza e saca a primeira tranche:
+
+```bash
+npm run seed:sepolia
+```
+
+A segunda tranche (40%, disponível após 60 s) fica pendente para demonstração manual ou via frontend.
 
 ## Variáveis de ambiente
 
@@ -88,7 +118,8 @@ npx hardhat run scripts/deploy.ts --network sepolia
 |---|---|
 | `SEPOLIA_RPC_URL` | URL RPC da Sepolia (Alchemy ou Infura) |
 | `PRIVATE_KEY` | Chave privada da carteira de deploy (sem `0x`) |
-| `ETHERSCAN_API_KEY` | API key para verificação do contrato no Etherscan |
+| `ETHERSCAN_API_KEY` | API key para verificação automática no Etherscan |
+| `DEMO` | `true` para usar janelas curtas no deploy (padrão: produção) |
 
 ## Tecnologias
 

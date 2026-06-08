@@ -6,8 +6,9 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "test:gas": "REPORT_GAS=true hardhat test",
+    "coverage": "hardhat coverage",
     "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia",
-    "coverage": "hardhat coverage"
+    "seed:sepolia": "hardhat run scripts/seed.ts --network sepolia"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
