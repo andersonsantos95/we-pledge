@@ -1,0 +1,19 @@
+# Normaliza line endings para LF no repositório; git converte ao fazer checkout em Windows
+* text=auto eol=lf
+
+# Arquivos que devem sempre usar CRLF no Windows
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binários — sem conversão
+*.ico  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.svg  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.eot  binary
