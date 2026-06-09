@@ -7,7 +7,9 @@
     "test": "hardhat test",
     "test:gas": "REPORT_GAS=true hardhat test",
     "coverage": "hardhat coverage",
+    "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
     "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia",
+    "seed:local": "hardhat run scripts/seed.ts --network localhost",
     "seed:sepolia": "hardhat run scripts/seed.ts --network sepolia"
   },
   "devDependencies": {
