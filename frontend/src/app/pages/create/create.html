@@ -30,9 +30,8 @@
     <div class="form-group">
       <label for="descricao">Descrição <span class="tip">(opcional)</span></label>
       <textarea id="descricao" formControlName="descricao" rows="3"
-        placeholder="Explique o objetivo do projeto, como os fundos serão usados e o que os apoiadores receberão."
-        maxlength="1000"></textarea>
-      <span class="char-count">{{ (form.get('descricao')?.value?.length ?? 0) }}/1000</span>
+        placeholder="Explique o objetivo do projeto, como os fundos serão usados e o que os apoiadores receberão."></textarea>
+      <span class="char-count">{{ (form.get('descricao')?.value?.length ?? 0) }} caracteres</span>
     </div>
 
     <!-- Meta -->

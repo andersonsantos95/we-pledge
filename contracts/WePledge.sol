@@ -285,8 +285,9 @@ contract WePledge is ReentrancyGuard {
         TrancheInput[] calldata cronograma_
     ) external returns (uint256 id) {
         // ── CHECKS ────────────────────────────────────────────────────────────
-        // Invariante: nome não vazio.
-        require(bytes(nome_).length > 0, "WePledge: nome nao pode ser vazio");
+        // Invariante: nome não vazio e dentro do limite de 200 bytes (~100 caracteres UTF-8).
+        require(bytes(nome_).length > 0,   "WePledge: nome nao pode ser vazio");
+        require(bytes(nome_).length <= 200, "WePledge: nome excede 200 bytes");
 
         // Invariante: meta positiva.
         // Campanha com meta 0 seria trivialmente "bem-sucedida" antes de qualquer
