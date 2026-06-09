@@ -62,6 +62,8 @@ async function campanhaComMetaAtingidaFixture() {
   const prazoCaptacao = agora + 7 * UM_DIA;
 
   await wepledge.connect(criador).criarCampanha(
+    "Campanha Teste",
+    "Projeto de demonstração para os testes do contrato WePledge.",
     meta,
     prazoCaptacao,
     [
@@ -144,7 +146,7 @@ describe("WePledge — Fase 3: finalizarCampanha e sacarTranche", function () {
       const meta  = hre.ethers.parseEther("2");
 
       await wepledge.connect(criador).criarCampanha(
-        meta, agora + 3600, [{ percentual: 100, tempoAposVesting: 0 }]
+        "Campanha Teste", "Projeto de demonstração para os testes do contrato WePledge.", meta, agora + 3600, [{ percentual: 100, tempoAposVesting: 0 }]
       );
       // nenhuma contribuição
 
@@ -296,6 +298,8 @@ describe("WePledge — Fase 3: finalizarCampanha e sacarTranche", function () {
       const contribuicao = meta + 1n; // 1_000_000_000_000_000_001 wei
 
       await wepledge.connect(criador).criarCampanha(
+        "Campanha Teste",
+        "Projeto de demonstração para os testes do contrato WePledge.",
         meta,
         agora + 3600,
         [
@@ -389,7 +393,7 @@ describe("WePledge — Fase 3: finalizarCampanha e sacarTranche", function () {
       const meta  = hre.ethers.parseEther("1");
 
       await wepledge.connect(criador).criarCampanha(
-        meta, agora + 3600, [{ percentual: 100, tempoAposVesting: 0 }]
+        "Campanha Teste", "Projeto de demonstração para os testes do contrato WePledge.", meta, agora + 3600, [{ percentual: 100, tempoAposVesting: 0 }]
       );
       await wepledge.connect(contrib1).contribuir(1n, { value: meta });
       await wepledge.connect(criador).finalizarCampanha(1n);

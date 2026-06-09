@@ -52,6 +52,8 @@ async function campanhaAbertaFixture() {
   const meta = hre.ethers.parseEther("2");      // 2 ETH
 
   await wepledge.connect(criador).criarCampanha(
+    "Campanha Teste",
+    "Projeto de demonstração para os testes do contrato WePledge.",
     meta,
     prazoCaptacao,
     [
@@ -317,10 +319,10 @@ describe("WePledge — Fase 2: contribuir", function () {
       const prazo = agora + 3600;
 
       await wepledge.connect(criador).criarCampanha(
-        hre.ethers.parseEther("1"), prazo, [{ percentual: 100, tempoAposVesting: 0 }]
+        "Campanha Teste", "Projeto de demonstração para os testes do contrato WePledge.", hre.ethers.parseEther("1"), prazo, [{ percentual: 100, tempoAposVesting: 0 }]
       );
       await wepledge.connect(criador).criarCampanha(
-        hre.ethers.parseEther("1"), prazo, [{ percentual: 100, tempoAposVesting: 0 }]
+        "Campanha Teste", "Projeto de demonstração para os testes do contrato WePledge.", hre.ethers.parseEther("1"), prazo, [{ percentual: 100, tempoAposVesting: 0 }]
       );
 
       await wepledge.connect(contrib1).contribuir(1n, { value: hre.ethers.parseEther("0.5") });

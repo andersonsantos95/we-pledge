@@ -44,6 +44,8 @@ async function deployFixture() {
 async function parametrosValidos() {
   const agora = await time.latest();
   return {
+    nome:          "Campanha Teste",
+    descricao:     "Projeto de demonstração para os testes do contrato WePledge.",
     meta:          hre.ethers.parseEther("1"),
     prazoCaptacao: agora + 7 * 24 * 3600, // 7 dias no futuro
     cronograma: [
@@ -113,7 +115,7 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       // staticCall para ler o valor de retorno sem submeter a tx.
       const id = await wepledge.connect(criador).criarCampanha.staticCall(
-        p.meta, p.prazoCaptacao, p.cronograma
+        p.nome, p.descricao, p.meta, p.prazoCaptacao, p.cronograma
       );
       expect(id).to.equal(1n);
     });
@@ -123,10 +125,10 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
       const { wepledge, criador } = await loadFixture(deployFixture);
       const p = await parametrosValidos();
 
-      await wepledge.connect(criador).criarCampanha(p.meta, p.prazoCaptacao, p.cronograma);
+      await wepledge.connect(criador).criarCampanha(p.nome, p.descricao, p.meta, p.prazoCaptacao, p.cronograma);
       expect(await wepledge.proximoId()).to.equal(2n);
 
-      await wepledge.connect(criador).criarCampanha(p.meta, p.prazoCaptacao, p.cronograma);
+      await wepledge.connect(criador).criarCampanha(p.nome, p.descricao, p.meta, p.prazoCaptacao, p.cronograma);
       expect(await wepledge.proximoId()).to.equal(3n);
     });
 
@@ -134,7 +136,7 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
       const { wepledge, criador } = await loadFixture(deployFixture);
       const p = await parametrosValidos();
 
-      await wepledge.connect(criador).criarCampanha(p.meta, p.prazoCaptacao, p.cronograma);
+      await wepledge.connect(criador).criarCampanha(p.nome, p.descricao, p.meta, p.prazoCaptacao, p.cronograma);
 
       const campanha = await wepledge.campanhas(1n);
       expect(campanha.criador).to.equal(await criador.getAddress());
@@ -145,7 +147,7 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
       const { wepledge, criador } = await loadFixture(deployFixture);
       const p = await parametrosValidos();
 
-      await wepledge.connect(criador).criarCampanha(p.meta, p.prazoCaptacao, p.cronograma);
+      await wepledge.connect(criador).criarCampanha(p.nome, p.descricao, p.meta, p.prazoCaptacao, p.cronograma);
 
       const campanha = await wepledge.campanhas(1n);
       expect(campanha.meta).to.equal(p.meta);
@@ -158,7 +160,7 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
       const { wepledge, criador } = await loadFixture(deployFixture);
       const p = await parametrosValidos();
 
-      await wepledge.connect(criador).criarCampanha(p.meta, p.prazoCaptacao, p.cronograma);
+      await wepledge.connect(criador).criarCampanha(p.nome, p.descricao, p.meta, p.prazoCaptacao, p.cronograma);
 
       const campanha = await wepledge.campanhas(1n);
       expect(campanha.valorArrecadado).to.equal(0n);
@@ -171,7 +173,7 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
       const { wepledge, criador } = await loadFixture(deployFixture);
       const p = await parametrosValidos();
 
-      await wepledge.connect(criador).criarCampanha(p.meta, p.prazoCaptacao, p.cronograma);
+      await wepledge.connect(criador).criarCampanha(p.nome, p.descricao, p.meta, p.prazoCaptacao, p.cronograma);
 
       const cronograma = await wepledge.getCronograma(1n);
       expect(cronograma.length).to.equal(2);
@@ -187,7 +189,7 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
       const { wepledge, criador } = await loadFixture(deployFixture);
       const p = await parametrosValidos();
 
-      await wepledge.connect(criador).criarCampanha(p.meta, p.prazoCaptacao, p.cronograma);
+      await wepledge.connect(criador).criarCampanha(p.nome, p.descricao, p.meta, p.prazoCaptacao, p.cronograma);
 
       expect(await wepledge.getTotalTranches(1n)).to.equal(2n);
     });
@@ -198,12 +200,14 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
       const p = await parametrosValidos();
 
       await expect(
-        wepledge.connect(criador).criarCampanha(p.meta, p.prazoCaptacao, p.cronograma)
+        wepledge.connect(criador).criarCampanha(p.nome, p.descricao, p.meta, p.prazoCaptacao, p.cronograma)
       )
         .to.emit(wepledge, "CampanhaCriada")
         .withArgs(
           1n,
           await criador.getAddress(),
+          p.nome,
+          p.descricao,
           p.meta,
           BigInt(p.prazoCaptacao),
           // cronograma: checado implicitamente pelo chai (comprimento e tuplas).
@@ -222,6 +226,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           hre.ethers.parseEther("1"),
           agora + 3600,
           [{ percentual: 100, tempoAposVesting: 0 }]
@@ -246,6 +252,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           hre.ethers.parseEther("1"),
           agora + 3600,
           cronogramaMaximo
@@ -260,8 +268,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
       const { wepledge, criador, contribuinte } = await loadFixture(deployFixture);
       const p = await parametrosValidos();
 
-      await wepledge.connect(criador).criarCampanha(p.meta, p.prazoCaptacao, p.cronograma);
-      await wepledge.connect(contribuinte).criarCampanha(p.meta, p.prazoCaptacao, p.cronograma);
+      await wepledge.connect(criador).criarCampanha(p.nome, p.descricao, p.meta, p.prazoCaptacao, p.cronograma);
+      await wepledge.connect(contribuinte).criarCampanha(p.nome, p.descricao, p.meta, p.prazoCaptacao, p.cronograma);
 
       const c1 = await wepledge.campanhas(1n);
       const c2 = await wepledge.campanhas(2n);
@@ -279,6 +287,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           0n,
           agora + 3600,
           [{ percentual: 100, tempoAposVesting: 0 }]
@@ -296,6 +306,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           hre.ethers.parseEther("1"),
           agora, // igual ao bloco atual
           [{ percentual: 100, tempoAposVesting: 0 }]
@@ -309,6 +321,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           hre.ethers.parseEther("1"),
           agora - 1, // 1 segundo atrás
           [{ percentual: 100, tempoAposVesting: 0 }]
@@ -325,6 +339,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           hre.ethers.parseEther("1"),
           agora + MAX_PRAZO_CAPTACAO + 60,
           [{ percentual: 100, tempoAposVesting: 0 }]
@@ -339,6 +355,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           hre.ethers.parseEther("1"),
           agora + MAX_PRAZO_CAPTACAO, // exato
           [{ percentual: 100, tempoAposVesting: 0 }]
@@ -355,6 +373,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           hre.ethers.parseEther("1"),
           agora + 3600,
           [] // vazio
@@ -379,6 +399,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           hre.ethers.parseEther("1"),
           agora + 3600,
           muitasTranches
@@ -392,6 +414,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           hre.ethers.parseEther("1"),
           agora + 3600,
           [
@@ -409,6 +433,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           hre.ethers.parseEther("1"),
           agora + 3600,
           [
@@ -426,6 +452,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           hre.ethers.parseEther("1"),
           agora + 3600,
           [
@@ -443,6 +471,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           hre.ethers.parseEther("1"),
           agora + 3600,
           [
@@ -459,6 +489,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           hre.ethers.parseEther("1"),
           agora + 3600,
           [
@@ -477,6 +509,8 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
 
       await expect(
         wepledge.connect(criador).criarCampanha(
+          "Campanha Teste",
+          "Projeto de demonstração para os testes do contrato WePledge.",
           hre.ethers.parseEther("1"),
           agora + 3600,
           [
@@ -486,6 +520,23 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
           ]
         )
       ).to.not.be.reverted;
+    });
+  });
+
+  // ── Validação de nome ────────────────────────────────────────────────────────
+  describe("criarCampanha — validação de nome", function () {
+    it("rejeita nome vazio", async function () {
+      const { wepledge, criador } = await loadFixture(deployFixture);
+      const agora = await time.latest();
+      await expect(
+        wepledge.connect(criador).criarCampanha(
+          "",
+          "Descrição válida.",
+          hre.ethers.parseEther("1"),
+          agora + 3600,
+          [{ percentual: 100, tempoAposVesting: 0 }]
+        )
+      ).to.be.revertedWith("WePledge: nome nao pode ser vazio");
     });
   });
 
@@ -532,10 +583,10 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
       const meta2 = hre.ethers.parseEther("5");
 
       await wepledge.connect(criador).criarCampanha(
-        meta1, agora + 3600, [{ percentual: 100, tempoAposVesting: 0 }]
+        "Campanha Teste", "Projeto de demonstração para os testes do contrato WePledge.", meta1, agora + 3600, [{ percentual: 100, tempoAposVesting: 0 }]
       );
       await wepledge.connect(contribuinte).criarCampanha(
-        meta2, agora + 7200, [{ percentual: 100, tempoAposVesting: 0 }]
+        "Campanha Teste", "Projeto de demonstração para os testes do contrato WePledge.", meta2, agora + 7200, [{ percentual: 100, tempoAposVesting: 0 }]
       );
 
       const c1 = await wepledge.campanhas(1n);

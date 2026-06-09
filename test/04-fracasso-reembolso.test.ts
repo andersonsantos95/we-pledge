@@ -54,6 +54,8 @@ async function campanhaAbertaSubMetaFixture() {
   const meta          = hre.ethers.parseEther("2");
 
   await wepledge.connect(criador).criarCampanha(
+    "Campanha Teste",
+    "Projeto de demonstração para os testes do contrato WePledge.",
     meta,
     prazoCaptacao,
     [{ percentual: 100, tempoAposVesting: 0 }]
@@ -166,7 +168,7 @@ describe("WePledge — Fase 4: marcarFracasso e reembolsar", function () {
       const prazo = agora + 3600;
 
       await wepledge.connect(criador).criarCampanha(
-        meta, prazo, [{ percentual: 100, tempoAposVesting: 0 }]
+        "Campanha Teste", "Projeto de demonstração para os testes do contrato WePledge.", meta, prazo, [{ percentual: 100, tempoAposVesting: 0 }]
       );
       await wepledge.connect(contrib1).contribuir(1n, { value: meta });
 
@@ -193,7 +195,7 @@ describe("WePledge — Fase 4: marcarFracasso e reembolsar", function () {
       const meta  = hre.ethers.parseEther("1");
 
       await wepledge.connect(criador).criarCampanha(
-        meta, agora + 3600, [{ percentual: 100, tempoAposVesting: 0 }]
+        "Campanha Teste", "Projeto de demonstração para os testes do contrato WePledge.", meta, agora + 3600, [{ percentual: 100, tempoAposVesting: 0 }]
       );
       await wepledge.connect(contrib1).contribuir(1n, { value: meta });
       await wepledge.connect(criador).finalizarCampanha(1n);
@@ -262,7 +264,7 @@ describe("WePledge — Fase 4: marcarFracasso e reembolsar", function () {
       const prazo = agora + 3600;
 
       await wepledge.connect(criador).criarCampanha(
-        meta, prazo, [{ percentual: 100, tempoAposVesting: 0 }]
+        "Campanha Teste", "Projeto de demonstração para os testes do contrato WePledge.", meta, prazo, [{ percentual: 100, tempoAposVesting: 0 }]
       );
 
       const v1 = hre.ethers.parseEther("1.3");
@@ -290,7 +292,7 @@ describe("WePledge — Fase 4: marcarFracasso e reembolsar", function () {
       const prazo = agora + 3600;
 
       await wepledge.connect(criador).criarCampanha(
-        meta, prazo, [{ percentual: 100, tempoAposVesting: 0 }]
+        "Campanha Teste", "Projeto de demonstração para os testes do contrato WePledge.", meta, prazo, [{ percentual: 100, tempoAposVesting: 0 }]
       );
 
       const v1 = hre.ethers.parseEther("0.3");
@@ -342,7 +344,7 @@ describe("WePledge — Fase 4: marcarFracasso e reembolsar", function () {
       const meta  = hre.ethers.parseEther("1");
 
       await wepledge.connect(criador).criarCampanha(
-        meta, agora + 3600, [{ percentual: 100, tempoAposVesting: 0 }]
+        "Campanha Teste", "Projeto de demonstração para os testes do contrato WePledge.", meta, agora + 3600, [{ percentual: 100, tempoAposVesting: 0 }]
       );
       await wepledge.connect(contrib1).contribuir(1n, { value: meta });
       await wepledge.connect(criador).finalizarCampanha(1n);

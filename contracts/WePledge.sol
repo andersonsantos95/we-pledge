@@ -98,6 +98,8 @@ contract WePledge is ReentrancyGuard {
     ///      armazenar o comprimento separadamente e não seria iterável sem índice externo.
     struct Campanha {
         address criador;
+        string nome;                // Nome público da campanha (não vazio).
+        string descricao;           // Descrição opcional do projeto.
         uint256 meta;
         uint256 prazoCaptacao;      // Timestamp absoluto após o qual contribuições encerram.
         uint256 valorArrecadado;
@@ -119,6 +121,8 @@ contract WePledge is ReentrancyGuard {
     event CampanhaCriada(
         uint256 indexed id,
         address indexed criador,
+        string nome,
+        string descricao,
         uint256 meta,
         uint256 prazoCaptacao,
         Tranche[] cronograma
@@ -274,11 +278,16 @@ contract WePledge is ReentrancyGuard {
     ///                    Tempos devem ser estritamente crescentes (primeiro pode ser 0).
     /// @return id Identificador único da campanha criada (começa em 1).
     function criarCampanha(
+        string calldata nome_,
+        string calldata descricao_,
         uint256 meta_,
         uint256 prazoCaptacao_,
         TrancheInput[] calldata cronograma_
     ) external returns (uint256 id) {
         // ── CHECKS ────────────────────────────────────────────────────────────
+        // Invariante: nome não vazio.
+        require(bytes(nome_).length > 0, "WePledge: nome nao pode ser vazio");
+
         // Invariante: meta positiva.
         // Campanha com meta 0 seria trivialmente "bem-sucedida" antes de qualquer
         // contribuição, e finalizarCampanha poderia ser chamado imediatamente com
@@ -350,6 +359,8 @@ contract WePledge is ReentrancyGuard {
         // escritos explicitamente — storage default é 0, equivalente ao estado inicial.
         Campanha storage c = campanhas[id];
         c.criador       = msg.sender;
+        c.nome          = nome_;
+        c.descricao     = descricao_;
         c.meta          = meta_;
         c.prazoCaptacao = prazoCaptacao_;
         c.estado        = EstadoCampanha.Captacao;
@@ -370,7 +381,7 @@ contract WePledge is ReentrancyGuard {
         // observável, mas não executa código de terceiros — sem risco de reentrância.
         // Emitimos c.cronograma (storage) para incluir o campo `sacada` na ABI do evento,
         // consistente com o tipo Tranche usado no restante do contrato.
-        emit CampanhaCriada(id, msg.sender, meta_, prazoCaptacao_, c.cronograma);
+        emit CampanhaCriada(id, msg.sender, nome_, descricao_, meta_, prazoCaptacao_, c.cronograma);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

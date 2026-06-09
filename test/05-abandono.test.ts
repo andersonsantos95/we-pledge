@@ -53,6 +53,8 @@ async function campanhaMetaAtingidaFixture() {
   const meta = hre.ethers.parseEther("1");
 
   await wepledge.connect(criador).criarCampanha(
+    "Campanha Teste",
+    "Projeto de demonstração para os testes do contrato WePledge.",
     meta,
     prazoCaptacao,
     [{ percentual: 100, tempoAposVesting: 0 }]
@@ -213,6 +215,8 @@ describe("WePledge — Fase 5: marcarAbandono", function () {
       const meta = hre.ethers.parseEther("2");
 
       await wepledge.connect(criador).criarCampanha(
+        "Campanha Teste",
+        "Projeto de demonstração para os testes do contrato WePledge.",
         meta,
         prazoCaptacao,
         [{ percentual: 100, tempoAposVesting: 0 }]
