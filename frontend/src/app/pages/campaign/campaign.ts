@@ -152,6 +152,44 @@ export class CampaignComponent implements OnInit {
     return this.contract.now() > this.c.prazoCaptacao + this.janelaFinalizacao() + this.janelaAbandono();
   }
 
+  get abandonmentDeadline(): bigint {
+    return (this.c?.prazoCaptacao ?? 0n) + this.janelaFinalizacao() + this.janelaAbandono();
+  }
+
+  // 'info' = meta reached, prazo not yet expired (informational)
+  // 'urgent' = prazo expired, still inside finalization+abandonment window
+  // null = not applicable
+  get creatorAbandonmentWarning(): 'info' | 'urgent' | null {
+    if (!this.isCreator || !this.c) return null;
+    if (this.c.estado !== CampaignState.Captacao) return null;
+    if (this.c.valorArrecadado < this.c.meta) return null;
+    const now = this.contract.now();
+    if (now <= this.c.prazoCaptacao) return 'info';
+    if (now <= this.abandonmentDeadline) return 'urgent';
+    return null;
+  }
+
+  get secondsUntilAbandonmentDeadline(): bigint {
+    const deadline = this.abandonmentDeadline;
+    const now = this.contract.now();
+    return deadline > now ? deadline - now : 0n;
+  }
+
+  formatDuration(seconds: bigint): string {
+    const s = Number(seconds);
+    if (s <= 0) return '0s';
+    const days  = Math.floor(s / 86400);
+    const hours = Math.floor((s % 86400) / 3600);
+    const mins  = Math.floor((s % 3600) / 60);
+    const secs  = s % 60;
+    const parts: string[] = [];
+    if (days  > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (mins  > 0) parts.push(`${mins}m`);
+    if (secs  > 0 && days === 0) parts.push(`${secs}s`);
+    return parts.join(' ') || '0s';
+  }
+
   get canRefund(): boolean {
     return !!this.c && this.c.estado === CampaignState.Fracassada && this.myBalance() > 0n;
   }

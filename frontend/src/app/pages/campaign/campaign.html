@@ -242,6 +242,22 @@
           @if (canFinalize) {
             <div class="action-block">
               <h4>Iniciar Vesting</h4>
+
+              @if (creatorAbandonmentWarning === 'urgent') {
+                <div class="abandonment-urgent">
+                  <strong>⚠ Atenção!</strong> Finalize antes que qualquer pessoa marque esta campanha como abandonada.
+                  <div class="abandonment-countdown">
+                    {{ formatDuration(secondsUntilAbandonmentDeadline) }} restantes
+                  </div>
+                </div>
+              } @else if (creatorAbandonmentWarning === 'info') {
+                <div class="abandonment-info">
+                  Após o prazo de captação, você terá
+                  {{ formatDuration(janelaFinalizacao() + janelaAbandono()) }}
+                  para finalizar antes que a campanha possa ser marcada como abandonada.
+                </div>
+              }
+
               <p class="action-desc">Meta atingida. Clique para finalizar a captação e iniciar a liberação das tranches.</p>
               <button class="btn btn-success" style="width:100%"
                 (click)="finalize()" [disabled]="txLoading()">
