@@ -51,7 +51,7 @@
   padding-bottom: 10px;
 }
 
-.tranche-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; }
+.tranche-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; align-items: end; }
 
 .mb0 { margin-bottom: 0; }
 
