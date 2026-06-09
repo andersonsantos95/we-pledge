@@ -1,9 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { Contract, ZeroAddress, formatEther } from 'ethers';
+import { Contract, ZeroAddress } from 'ethers';
 import { WalletService } from './wallet.service';
 import { WEPLEDGE_ABI } from '../../abi/wepledge.abi';
 import { environment } from '../../../environments/environment';
-import { Campaign, CampaignState, Tranche } from '../models/campaign.model';
+import { Campaign, CampaignState, Contribution, Tranche } from '../models/campaign.model';
 
 @Injectable({ providedIn: 'root' })
 export class ContractService {
@@ -75,6 +75,17 @@ export class ContractService {
     return BigInt(await this.readContract()['MAX_PRAZO_CAPTACAO']());
   }
 
+  async getContributions(id: bigint): Promise<Contribution[]> {
+    const c = this.readContract();
+    const events = await c.queryFilter(c.filters['Contribuicao'](id)) as any[];
+    return events.map(e => ({
+      contribuinte: e.args[1] as string,
+      valor:        BigInt(e.args[2]),
+      txHash:       e.transactionHash as string,
+      blockNumber:  e.blockNumber as number,
+    }));
+  }
+
   // ── Escritas ──────────────────────────────────────────────────────────────
 
   async criarCampanha(
@@ -128,7 +139,14 @@ export class ContractService {
   // ── Helpers de UI ─────────────────────────────────────────────────────────
 
   formatEth(wei: bigint): string {
-    return parseFloat(formatEther(wei)).toFixed(4);
+    if (wei === 0n) return '0.0000';
+    // Aritmética BigInt pura — sem float.
+    // Arredonda para 4 casas decimais: divide por 10^14 com arredondamento.
+    const UNIT = 10n ** 14n;           // 0.0001 ETH em wei
+    const rounded = (wei + UNIT / 2n) / UNIT;
+    const whole = rounded / 10_000n;
+    const frac  = rounded % 10_000n;
+    return `${whole}.${frac.toString().padStart(4, '0')}`;
   }
 
   progress(valorArrecadado: bigint, meta: bigint): number {

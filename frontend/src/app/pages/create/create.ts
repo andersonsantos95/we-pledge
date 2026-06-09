@@ -112,7 +112,7 @@ export class CreateComponent implements OnInit {
 
     try {
       const v = this.form.value;
-      const meta = parseEther(String(v.meta));
+      const meta = parseEther(Number(v.meta).toFixed(18).replace(/\.?0+$/, '') || '0');
       const prazo = BigInt(Math.floor(new Date(v.prazo!).getTime() / 1000));
       const cronograma = this.tranches.controls.map((c) => ({
         percentual:       Number(c.get('percentual')!.value),

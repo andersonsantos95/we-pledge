@@ -18,76 +18,144 @@
     <!-- Grid principal -->
     <div class="main-grid">
 
-      <!-- Coluna esquerda: info + progresso -->
+      <!-- Coluna esquerda -->
       <div class="info-col">
-        <div class="card">
-          <div class="stat-grid">
-            <div class="stat">
-              <div class="stat-label">Arrecadado</div>
-              <div class="stat-value highlight">{{ formatEth(c.valorArrecadado) }} ETH</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Meta</div>
-              <div class="stat-value">{{ formatEth(c.meta) }} ETH</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Criador</div>
-              <div class="stat-value mono">{{ wallet.shortAddress(c.criador) }}</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Prazo de captação</div>
-              <div class="stat-value" [class.text-danger]="deadlineExpired">
-                {{ formatTs(c.prazoCaptacao) }}
-              </div>
-            </div>
-          </div>
 
-          <div class="progress-section">
-            <div class="progress-bar-track progress-lg">
-              <div class="progress-bar-fill" [style.width.%]="progress()"></div>
-            </div>
-            <div class="progress-pct">{{ progress() | number:'1.0-1' }}% da meta</div>
-          </div>
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab-btn" [class.active]="activeTab === 'detalhes'"
+            (click)="setTab('detalhes')">Detalhes</button>
+          <button class="tab-btn" [class.active]="activeTab === 'contribuicoes'"
+            (click)="setTab('contribuicoes')">
+            Contribuições
+            @if (contributions().length > 0) {
+              <span class="tab-count">{{ contributions().length }}</span>
+            }
+          </button>
         </div>
 
-        <!-- Cronograma de vesting -->
-        @if (c.cronograma.length > 0) {
-          <div class="card" style="margin-top:16px">
-            <h3 class="section-title">Cronograma de Vesting</h3>
-            <table class="tranche-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>%</th>
-                  <th>Valor</th>
-                  <th>Disponível</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (t of c.cronograma; track $index) {
+        <!-- Aba: Detalhes -->
+        @if (activeTab === 'detalhes') {
+          <div class="card">
+            <div class="stat-grid">
+              <div class="stat">
+                <div class="stat-label">Arrecadado</div>
+                <div class="stat-value highlight">{{ formatEth(c.valorArrecadado) }} ETH</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Meta</div>
+                <div class="stat-value">{{ formatEth(c.meta) }} ETH</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Criador</div>
+                <div class="stat-value mono">{{ shortAddr(c.criador) }}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Prazo de captação</div>
+                <div class="stat-value" [class.text-danger]="deadlineExpired">
+                  {{ formatTs(c.prazoCaptacao) }}
+                </div>
+              </div>
+            </div>
+
+            <div class="progress-section">
+              <div class="progress-bar-track progress-lg">
+                <div class="progress-bar-fill" [style.width.%]="progress()"></div>
+              </div>
+              <div class="progress-pct">{{ progress() | number:'1.0-1' }}% da meta</div>
+            </div>
+          </div>
+
+          <!-- Cronograma de vesting -->
+          @if (c.cronograma.length > 0) {
+            <div class="card" style="margin-top:16px">
+              <h3 class="section-title">Cronograma de Vesting</h3>
+              <table class="tranche-table">
+                <thead>
                   <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>{{ t.percentual }}%</td>
-                    <td>~{{ trancheEth(c.meta, t.percentual) }} ETH</td>
-                    <td class="small-date">{{ trancheAvailableAt(t) }}</td>
-                    <td>
-                      @if (t.sacada) {
-                        <span class="badge badge-concluida">Sacada</span>
-                      } @else if (isTrancheLocked(t)) {
-                        <span class="badge badge-captacao">Aguardando</span>
-                      } @else if (c.estado === CampaignState.EmVesting) {
-                        <span class="badge badge-vesting">Disponível</span>
-                      } @else {
-                        <span class="badge" style="color:var(--text-muted)">—</span>
-                      }
-                    </td>
+                    <th>#</th>
+                    <th>%</th>
+                    <th>Valor</th>
+                    <th>Disponível</th>
+                    <th>Status</th>
                   </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @for (t of c.cronograma; track $index) {
+                    <tr>
+                      <td>{{ $index + 1 }}</td>
+                      <td>{{ t.percentual }}%</td>
+                      <td>~{{ trancheEth(c.meta, t.percentual) }} ETH</td>
+                      <td class="small-date">{{ trancheAvailableAt(t) }}</td>
+                      <td>
+                        @if (t.sacada) {
+                          <span class="badge badge-concluida">Sacada</span>
+                        } @else if (isTrancheLocked(t)) {
+                          <span class="badge badge-captacao">Aguardando</span>
+                        } @else if (c.estado === CampaignState.EmVesting) {
+                          <span class="badge badge-vesting">Disponível</span>
+                        } @else {
+                          <span class="badge" style="color:var(--text-muted)">—</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+
+        <!-- Aba: Contribuições -->
+        @if (activeTab === 'contribuicoes') {
+          <div class="card">
+            @if (loadingContribs()) {
+              <div class="skeleton" style="height:120px; border-radius:8px;"></div>
+            } @else if (contributions().length === 0) {
+              <p class="no-action">Nenhuma contribuição registrada ainda.</p>
+            } @else {
+              <div class="contribs-summary">
+                <span>{{ contributions().length }} contribuição{{ contributions().length > 1 ? 'ões' : '' }}</span>
+                <span class="highlight">{{ formatEth(totalContribuido()) }} ETH total</span>
+              </div>
+              <table class="tranche-table">
+                <thead>
+                  <tr>
+                    <th>Contribuinte</th>
+                    <th>Valor</th>
+                    <th>Bloco</th>
+                    <th>Tx</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (contrib of contributions(); track contrib.txHash) {
+                    <tr [class.own-contrib]="wallet.address()?.toLowerCase() === contrib.contribuinte.toLowerCase()">
+                      <td class="mono">
+                        {{ shortAddr(contrib.contribuinte) }}
+                        @if (contrib.contribuinte.toLowerCase() === c.criador.toLowerCase()) {
+                          <span class="creator-tag">criador</span>
+                        }
+                        @if (wallet.address()?.toLowerCase() === contrib.contribuinte.toLowerCase()) {
+                          <span class="you-tag">você</span>
+                        }
+                      </td>
+                      <td class="highlight">{{ formatEth(contrib.valor) }} ETH</td>
+                      <td class="small-date">#{{ contrib.blockNumber }}</td>
+                      <td>
+                        @if (txUrl(contrib.txHash); as url) {
+                          <a [href]="url" target="_blank" rel="noopener" class="tx-link">↗</a>
+                        } @else {
+                          <span class="small-date mono">{{ contrib.txHash.slice(0,8) }}…</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
           </div>
         }
+
       </div>
 
       <!-- Coluna direita: ações -->
@@ -106,6 +174,9 @@
           @if (canContribute) {
             <div class="action-block">
               <h4>Contribuir</h4>
+              @if (isCreator) {
+                <div class="creator-warn">Você é o criador desta campanha.</div>
+              }
               <div class="form-group">
                 <label>Valor (ETH)</label>
                 <input type="number" [(ngModel)]="contributeAmount"

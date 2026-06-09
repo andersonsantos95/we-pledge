@@ -5,7 +5,8 @@ import { DecimalPipe } from '@angular/common';
 import { parseEther } from 'ethers';
 import { ContractService } from '../../core/services/contract.service';
 import { WalletService } from '../../core/services/wallet.service';
-import { Campaign, CampaignState, STATE_LABELS, STATE_CSS, Tranche } from '../../core/models/campaign.model';
+import { Campaign, CampaignState, Contribution, STATE_LABELS, STATE_CSS, Tranche } from '../../core/models/campaign.model';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-campaign',
@@ -18,22 +19,28 @@ export class CampaignComponent implements OnInit {
   private contract = inject(ContractService);
   readonly wallet  = inject(WalletService);
 
-  campaign   = signal<Campaign | null>(null);
-  myBalance  = signal<bigint>(0n);
+  campaign      = signal<Campaign | null>(null);
+  myBalance     = signal<bigint>(0n);
+  contributions = signal<Contribution[]>([]);
   janelaFinalizacao = signal<bigint>(0n);
   janelaAbandono    = signal<bigint>(0n);
 
-  loading   = signal(true);
-  txLoading = signal(false);
-  error     = signal<string | null>(null);
-  txError   = signal<string | null>(null);
-  txSuccess = signal<string | null>(null);
+  loading            = signal(true);
+  loadingContribs    = signal(false);
+  txLoading          = signal(false);
+  error              = signal<string | null>(null);
+  txError            = signal<string | null>(null);
+  txSuccess          = signal<string | null>(null);
 
+  activeTab: 'detalhes' | 'contribuicoes' = 'detalhes';
   contributeAmount = '';
 
-  readonly STATE_LABELS = STATE_LABELS;
-  readonly STATE_CSS    = STATE_CSS;
+  readonly STATE_LABELS  = STATE_LABELS;
+  readonly STATE_CSS     = STATE_CSS;
   readonly CampaignState = CampaignState;
+  readonly isLocalnet    = environment.chainId === 31337;
+  readonly explorerBase  = environment.chainId === 11155111
+    ? 'https://sepolia.etherscan.io' : null;
 
   async ngOnInit(): Promise<void> {
     const id = BigInt(this.route.snapshot.paramMap.get('id')!);
@@ -53,9 +60,22 @@ export class CampaignComponent implements OnInit {
     } finally {
       this.loading.set(false);
     }
+    this.loadContributions(id);
   }
 
-  // ── Predicados de ação ─────────────────────────────────────────────────────
+  async loadContributions(id: bigint): Promise<void> {
+    this.loadingContribs.set(true);
+    try {
+      this.contributions.set(await this.contract.getContributions(id));
+    } catch { /* ignora — não bloqueia a página */ }
+    finally { this.loadingContribs.set(false); }
+  }
+
+  setTab(tab: 'detalhes' | 'contribuicoes'): void {
+    this.activeTab = tab;
+  }
+
+  // ── Predicados de ação ────────────────────────────────────────────────────
 
   get c(): Campaign | null { return this.campaign(); }
 
@@ -117,10 +137,10 @@ export class CampaignComponent implements OnInit {
     try {
       await fn();
       this.txSuccess.set(`✓ ${label} realizado com sucesso!`);
-      // Recarrega dados
       const id = this.c!.id;
       this.campaign.set(await this.contract.getCampaign(id));
       this.myBalance.set(await this.contract.getMyBalance(id));
+      this.contributions.set(await this.contract.getContributions(id));
     } catch (e: any) {
       this.txError.set(e.reason ?? e.message ?? `Erro em ${label}.`);
     } finally {
@@ -130,7 +150,8 @@ export class CampaignComponent implements OnInit {
 
   contribute(): void {
     const id  = this.c!.id;
-    const val = parseEther(String(this.contributeAmount || '0'));
+    const str = Number(this.contributeAmount || 0).toFixed(18).replace(/\.?0+$/, '') || '0';
+    const val = parseEther(str);
     if (val <= 0n) { this.txError.set('Informe um valor válido.'); return; }
     this.runTx('Contribuição', () => this.contract.contribuir(id, val));
   }
@@ -155,7 +176,7 @@ export class CampaignComponent implements OnInit {
     this.runTx('Reembolso', () => this.contract.reembolsar(this.c!.id));
   }
 
-  // ── Formatação ─────────────────────────────────────────────────────────────
+  // ── Formatação ────────────────────────────────────────────────────────────
 
   formatEth(wei: bigint): string { return this.contract.formatEth(wei); }
   trancheEth(base: bigint, pct: number): string { return this.formatEth(base * BigInt(pct) / 100n); }
@@ -173,5 +194,17 @@ export class CampaignComponent implements OnInit {
   isTrancheLocked(t: Tranche): boolean {
     if (!this.c || t.sacada) return false;
     return this.contract.now() < this.c.dataInicioVesting + t.tempoAposVesting;
+  }
+
+  shortAddr(addr: string): string {
+    return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+  }
+
+  txUrl(txHash: string): string | null {
+    return this.explorerBase ? `${this.explorerBase}/tx/${txHash}` : null;
+  }
+
+  totalContribuido(): bigint {
+    return this.contributions().reduce((s, c) => s + c.valor, 0n);
   }
 }

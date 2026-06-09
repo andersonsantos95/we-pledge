@@ -25,6 +25,13 @@ export interface Tranche {
   sacada: boolean;
 }
 
+export interface Contribution {
+  contribuinte: string;
+  valor: bigint;
+  txHash: string;
+  blockNumber: number;
+}
+
 export interface Campaign {
   id: bigint;
   criador: string;
