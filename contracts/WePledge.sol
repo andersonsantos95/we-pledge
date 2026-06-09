@@ -286,8 +286,10 @@ contract WePledge is ReentrancyGuard {
     ) external returns (uint256 id) {
         // ── CHECKS ────────────────────────────────────────────────────────────
         // Invariante: nome não vazio e dentro do limite de 200 bytes (~100 caracteres UTF-8).
-        require(bytes(nome_).length > 0,   "WePledge: nome nao pode ser vazio");
-        require(bytes(nome_).length <= 200, "WePledge: nome excede 200 bytes");
+        require(bytes(nome_).length > 0,        "WePledge: nome nao pode ser vazio");
+        require(bytes(nome_).length <= 200,      "WePledge: nome excede 200 bytes");
+        // Invariante: descrição dentro do limite de 3000 bytes (~1000 caracteres UTF-8).
+        require(bytes(descricao_).length <= 3000, "WePledge: descricao excede 3000 bytes");
 
         // Invariante: meta positiva.
         // Campanha com meta 0 seria trivialmente "bem-sucedida" antes de qualquer

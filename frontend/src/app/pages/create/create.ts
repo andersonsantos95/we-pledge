@@ -31,7 +31,7 @@ export class CreateComponent implements OnInit {
 
   form = this.fb.group({
     nome:      ['', [Validators.required, Validators.maxLength(100)]],
-    descricao: [''],
+    descricao: ['', Validators.maxLength(1000)],
     meta:      ['', [Validators.required, metaPositiva]],
     prazo:     ['', Validators.required],
     tranches:  this.fb.array([this.newTranche(60, 0), this.newTranche(40, 30)]),

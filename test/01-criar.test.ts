@@ -568,6 +568,36 @@ describe("WePledge — Fase 1: deploy e criarCampanha", function () {
         )
       ).to.not.be.reverted;
     });
+
+    it("rejeita descrição com mais de 3000 bytes", async function () {
+      const { wepledge, criador } = await loadFixture(deployFixture);
+      const agora = await time.latest();
+      const descGrande = "A".repeat(3001);
+      await expect(
+        wepledge.connect(criador).criarCampanha(
+          "Nome válido",
+          descGrande,
+          hre.ethers.parseEther("1"),
+          agora + 3600,
+          [{ percentual: 100, tempoAposVesting: 0 }]
+        )
+      ).to.be.revertedWith("WePledge: descricao excede 3000 bytes");
+    });
+
+    it("aceita descrição com exatamente 3000 bytes", async function () {
+      const { wepledge, criador } = await loadFixture(deployFixture);
+      const agora = await time.latest();
+      const descExata = "A".repeat(3000);
+      await expect(
+        wepledge.connect(criador).criarCampanha(
+          "Nome válido",
+          descExata,
+          hre.ethers.parseEther("1"),
+          agora + 3600,
+          [{ percentual: 100, tempoAposVesting: 0 }]
+        )
+      ).to.not.be.reverted;
+    });
   });
 
   // ── Isolamento entre campanhas ───────────────────────────────────────────────
