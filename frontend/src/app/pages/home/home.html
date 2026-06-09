@@ -27,35 +27,59 @@
   } @else {
     <div class="campaigns-grid">
       @for (c of campaigns(); track c.id) {
-        <div class="campaign-card">
+        <div class="campaign-card"
+          [class.card-captacao]="c.estado === CampaignState.Captacao"
+          [class.card-vesting]="c.estado === CampaignState.EmVesting"
+          [class.card-concluida]="c.estado === CampaignState.Concluida"
+          [class.card-fracassada]="c.estado === CampaignState.Fracassada">
+
+          <!-- Cabeçalho -->
           <div class="card-header">
             <span class="campaign-id">#{{ c.id }}</span>
             <span class="badge {{ STATE_CSS[c.estado] }}">{{ STATE_LABELS[c.estado] }}</span>
           </div>
 
-          <div class="progress-section">
+          <!-- Valor e progresso -->
+          <div class="card-body">
             <div class="amounts">
-              <span class="raised">{{ formatEth(c.valorArrecadado) }} ETH</span>
-              <span class="meta">meta: {{ formatEth(c.meta) }} ETH</span>
+              <div>
+                <div class="raised">{{ formatEth(c.valorArrecadado) }} ETH</div>
+                <div class="raised-sub">arrecadado</div>
+              </div>
+              <div class="pct-block">
+                <div class="progress-pct">{{ progress(c) | number:'1.0-0' }}%</div>
+                <div class="raised-sub">de {{ formatEth(c.meta) }} ETH</div>
+              </div>
             </div>
-            <div class="progress-bar-track">
+            <div class="progress-bar-track progress-card">
               <div class="progress-bar-fill" [style.width.%]="progress(c)"></div>
             </div>
-            <div class="progress-pct">{{ progress(c) | number:'1.0-0' }}%</div>
           </div>
 
+          <!-- Meta info -->
           <div class="card-meta">
             <div class="meta-row">
               <span class="meta-label">Prazo</span>
               <span [class.expired]="isExpired(c.prazoCaptacao)">
                 {{ formatDeadline(c.prazoCaptacao) }}
-                @if (isExpired(c.prazoCaptacao)) { <span class="tag-expired">expirado</span> }
+                @if (isExpired(c.prazoCaptacao)) {
+                  <span class="tag-expired">expirado</span>
+                }
               </span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Tranches sacadas</span>
+              @if (c.estado === CampaignState.EmVesting || c.estado === CampaignState.Concluida) {
+                <span class="tranche-progress">{{ tranchesSacadas(c) }}/{{ c.cronograma.length }}</span>
+              } @else {
+                <span class="tranche-dash">-/-</span>
+              }
             </div>
           </div>
 
-          <a [routerLink]="['/campanha', c.id.toString()]" class="btn btn-outline" style="width:100%; margin-top:12px">
-            Ver detalhes
+          <!-- Ação -->
+          <a [routerLink]="['/campanha', c.id.toString()]" class="btn btn-card">
+            Ver detalhes →
           </a>
         </div>
       }

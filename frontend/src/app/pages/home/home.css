@@ -1,3 +1,4 @@
+/* ── Hero ─────────────────────────────────────────────────────────────────── */
 .hero {
   padding: 64px 24px 48px;
   text-align: center;
@@ -25,6 +26,7 @@
   line-height: 1.7;
 }
 
+/* ── Grid ─────────────────────────────────────────────────────────────────── */
 .loading-grid,
 .campaigns-grid {
   display: grid;
@@ -34,7 +36,7 @@
 }
 
 .skeleton {
-  height: 260px;
+  height: 280px;
   animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -43,79 +45,109 @@
   50%       { opacity: 0.4; }
 }
 
+/* ── Card base ────────────────────────────────────────────────────────────── */
 .campaign-card {
   background: var(--surface);
   border: 1px solid var(--border);
+  border-top: 3px solid var(--border);
   border-radius: var(--radius);
   padding: 20px;
-  transition: border-color 0.2s, transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
 }
 
 .campaign-card:hover {
-  border-color: var(--primary);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  transform: translateY(-3px);
 }
 
+/* Estado → cor da borda superior */
+.card-captacao  { border-top-color: var(--primary); }
+.card-captacao:hover  { border-color: var(--primary); }
+
+.card-vesting   { border-top-color: var(--warning); }
+.card-vesting:hover   { border-color: var(--warning); }
+
+.card-concluida { border-top-color: var(--success); }
+.card-concluida:hover { border-color: var(--success); }
+
+.card-fracassada{ border-top-color: var(--danger); }
+.card-fracassada:hover{ border-color: var(--danger); }
+
+/* ── Cabeçalho ────────────────────────────────────────────────────────────── */
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
 }
 
 .campaign-id {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--text-muted);
+  font-family: monospace;
+  letter-spacing: 0.05em;
+  background: var(--surface-2);
+  padding: 3px 8px;
+  border-radius: 4px;
 }
 
-.progress-section {
-  margin-bottom: 16px;
-}
+/* ── Valor e barra ────────────────────────────────────────────────────────── */
+.card-body { display: flex; flex-direction: column; gap: 10px; }
 
 .amounts {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 6px;
-  font-size: 13px;
+  align-items: flex-start;
 }
 
 .raised {
-  font-weight: 700;
+  font-size: 1.4rem;
+  font-weight: 800;
   color: var(--primary-light);
-  font-size: 16px;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
 }
 
-.meta {
+.raised-sub {
+  font-size: 11px;
   color: var(--text-muted);
+  margin-top: 3px;
 }
+
+.pct-block { text-align: right; }
 
 .progress-pct {
-  text-align: right;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 4px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
 }
 
+.progress-card { height: 8px; border-radius: 4px; }
+
+/* ── Meta info ────────────────────────────────────────────────────────────── */
 .card-meta {
   border-top: 1px solid var(--border);
   padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
 }
 
 .meta-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 13px;
   color: var(--text-muted);
 }
 
-.meta-label {
-  font-weight: 500;
-}
+.meta-label { font-weight: 500; }
 
-.expired {
-  color: var(--danger);
-}
+.expired { color: var(--danger); }
 
 .tag-expired {
   background: rgba(239, 68, 68, 0.15);
@@ -128,6 +160,36 @@
   text-transform: uppercase;
 }
 
+.tranche-progress {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tranche-dash { color: var(--text-muted); opacity: 0.5; }
+
+/* ── Botão do card ────────────────────────────────────────────────────────── */
+.btn-card {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  background: transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.btn-card:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--primary);
+}
+
+/* ── Estado vazio ─────────────────────────────────────────────────────────── */
 .empty-state {
   text-align: center;
   padding: 80px 24px;

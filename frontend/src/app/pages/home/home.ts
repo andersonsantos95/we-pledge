@@ -47,4 +47,8 @@ export class HomeComponent implements OnInit {
   isExpired(ts: bigint): boolean {
     return this.contract.now() > ts;
   }
+
+  tranchesSacadas(c: Campaign): number {
+    return c.cronograma.filter(t => t.sacada).length;
+  }
 }
