@@ -5,7 +5,7 @@ import { DecimalPipe } from '@angular/common';
 import { parseEther } from 'ethers';
 import { ContractService } from '../../core/services/contract.service';
 import { WalletService } from '../../core/services/wallet.service';
-import { Campaign, CampaignState, Contribution, STATE_LABELS, STATE_CSS, Tranche } from '../../core/models/campaign.model';
+import { ActivityEvent, Campaign, CampaignState, Contribution, STATE_LABELS, STATE_CSS, Tranche } from '../../core/models/campaign.model';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -27,12 +27,27 @@ export class CampaignComponent implements OnInit {
 
   loading            = signal(true);
   loadingContribs    = signal(false);
+  loadingActivity    = signal(false);
   txLoading          = signal(false);
   error              = signal<string | null>(null);
   txError            = signal<string | null>(null);
   txSuccess          = signal<string | null>(null);
+  activities         = signal<ActivityEvent[]>([]);
+  activityLoaded     = false;
 
-  activeTab: 'detalhes' | 'contribuicoes' = 'detalhes';
+  activeTab: 'detalhes' | 'contribuicoes' | 'atividade' = 'detalhes';
+
+  readonly ACTIVITY_COLORS: Record<string, string> = {
+    CampanhaCriada:     'var(--primary-light)',
+    Contribuicao:       'var(--success)',
+    MetaAtingida:       'var(--warning)',
+    CampanhaFinalizada: 'var(--primary-light)',
+    TrancheLiberada:    'var(--success)',
+    CampanhaConcluida:  'var(--success)',
+    CampanhaFracassada: 'var(--danger)',
+    CampanhaAbandonada: 'var(--danger)',
+    Reembolso:          'var(--warning)',
+  };
   contributeAmount = '';
 
   readonly STATE_LABELS  = STATE_LABELS;
@@ -71,8 +86,24 @@ export class CampaignComponent implements OnInit {
     finally { this.loadingContribs.set(false); }
   }
 
-  setTab(tab: 'detalhes' | 'contribuicoes'): void {
+  setTab(tab: 'detalhes' | 'contribuicoes' | 'atividade'): void {
     this.activeTab = tab;
+    if (tab === 'atividade' && !this.activityLoaded && this.c) {
+      this.loadActivity(this.c.id);
+    }
+  }
+
+  async loadActivity(id: bigint): Promise<void> {
+    this.activityLoaded = true;
+    this.loadingActivity.set(true);
+    try {
+      this.activities.set(await this.contract.getCampaignActivity(id));
+    } catch { /* não bloqueia a página */ }
+    finally { this.loadingActivity.set(false); }
+  }
+
+  activityColor(tipo: string): string {
+    return this.ACTIVITY_COLORS[tipo] ?? 'var(--text-muted)';
   }
 
   // ── Predicados de ação ────────────────────────────────────────────────────

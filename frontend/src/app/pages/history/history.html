@@ -1,0 +1,63 @@
+<div class="container page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Histórico de Contribuições</h1>
+      <p class="page-subtitle">Todas as contribuições registradas na blockchain, em ordem cronológica inversa.</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="card skeleton" style="height:300px; margin-top:24px;"></div>
+  } @else if (error()) {
+    <div class="error-msg" style="margin-top:24px">{{ error() }}</div>
+  } @else if (contributions().length === 0) {
+    <div class="card" style="margin-top:24px; text-align:center; padding:48px 24px">
+      <div style="font-size:2rem; margin-bottom:12px">📭</div>
+      <p style="color:var(--text-muted); font-size:14px">Nenhuma contribuição registrada ainda.</p>
+    </div>
+  } @else {
+    <div class="card" style="margin-top:24px">
+      <div class="history-summary">
+        <span>{{ contributions().length }} contribuiç{{ contributions().length !== 1 ? 'ões' : 'ão' }}</span>
+        <span class="highlight">{{ formatEth(totalContribuido()) }} ETH total</span>
+      </div>
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Campanha</th>
+            <th>Contribuinte</th>
+            <th>Valor</th>
+            <th>Bloco</th>
+            <th>Tx</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of contributions(); track c.txHash) {
+            <tr [class.own-contrib]="wallet.address()?.toLowerCase() === c.contribuinte.toLowerCase()">
+              <td>
+                <a [routerLink]="['/campanha', c.campanhaId.toString()]" class="campaign-link">
+                  #{{ c.campanhaId }}
+                </a>
+              </td>
+              <td class="mono">
+                {{ shortAddr(c.contribuinte) }}
+                @if (wallet.address()?.toLowerCase() === c.contribuinte.toLowerCase()) {
+                  <span class="you-tag">você</span>
+                }
+              </td>
+              <td class="highlight">{{ formatEth(c.valor) }} ETH</td>
+              <td class="small-date">#{{ c.blockNumber }}</td>
+              <td>
+                @if (txUrl(c.txHash); as url) {
+                  <a [href]="url" target="_blank" rel="noopener" class="tx-link">↗</a>
+                } @else {
+                  <span class="small-date mono">{{ c.txHash.slice(0,10) }}…</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

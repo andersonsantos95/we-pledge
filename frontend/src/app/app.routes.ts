@@ -13,5 +13,9 @@ export const routes: Routes = [
     path: 'campanha/:id',
     loadComponent: () => import('./pages/campaign/campaign').then(m => m.CampaignComponent),
   },
+  {
+    path: 'historico',
+    loadComponent: () => import('./pages/history/history').then(m => m.HistoryComponent),
+  },
   { path: '**', redirectTo: '' },
 ];

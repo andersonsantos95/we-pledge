@@ -3,7 +3,7 @@ import { Contract, ZeroAddress } from 'ethers';
 import { WalletService } from './wallet.service';
 import { WEPLEDGE_ABI } from '../../abi/wepledge.abi';
 import { environment } from '../../../environments/environment';
-import { Campaign, CampaignState, Contribution, Tranche } from '../models/campaign.model';
+import { ActivityEvent, Campaign, CampaignState, Contribution, GlobalContribution, Tranche } from '../models/campaign.model';
 
 @Injectable({ providedIn: 'root' })
 export class ContractService {
@@ -84,6 +84,53 @@ export class ContractService {
       txHash:       e.transactionHash as string,
       blockNumber:  e.blockNumber as number,
     }));
+  }
+
+  async getAllContributions(): Promise<GlobalContribution[]> {
+    const c = this.readContract();
+    const events = await c.queryFilter(c.filters['Contribuicao']()) as any[];
+    return events
+      .map(e => ({
+        campanhaId:   BigInt(e.args[0]),
+        contribuinte: e.args[1] as string,
+        valor:        BigInt(e.args[2]),
+        txHash:       e.transactionHash as string,
+        blockNumber:  e.blockNumber as number,
+      }))
+      .sort((a, b) => b.blockNumber - a.blockNumber);
+  }
+
+  async getCampaignActivity(id: bigint): Promise<ActivityEvent[]> {
+    const c = this.readContract();
+    type EventDef = { name: string; label: string; describe: (args: any[]) => string };
+    const defs: EventDef[] = [
+      { name: 'CampanhaCriada',     label: 'Campanha criada',       describe: (a) => `Meta: ${this.formatEth(BigInt(a[2]))} ETH` },
+      { name: 'Contribuicao',       label: 'Contribuição recebida', describe: (a) => `${a[1].slice(0,6)}…${a[1].slice(-4)} → ${this.formatEth(BigInt(a[2]))} ETH` },
+      { name: 'MetaAtingida',       label: 'Meta atingida',         describe: (a) => `Total: ${this.formatEth(BigInt(a[1]))} ETH` },
+      { name: 'CampanhaFinalizada', label: 'Vesting iniciado',      describe: (a) => `${this.formatEth(BigInt(a[1]))} ETH arrecadados` },
+      { name: 'TrancheLiberada',    label: 'Tranche liberada',      describe: (a) => `Tranche #${Number(a[1]) + 1}: ${this.formatEth(BigInt(a[2]))} ETH` },
+      { name: 'CampanhaConcluida',  label: 'Campanha concluída',    describe: () => 'Todas as tranches sacadas.' },
+      { name: 'CampanhaFracassada', label: 'Campanha fracassada',   describe: (a) => `Arrecadado: ${this.formatEth(BigInt(a[1]))} ETH` },
+      { name: 'CampanhaAbandonada', label: 'Campanha abandonada',   describe: () => 'Criador não finalizou no prazo.' },
+      { name: 'Reembolso',          label: 'Reembolso',             describe: (a) => `${a[1].slice(0,6)}…${a[1].slice(-4)}: ${this.formatEth(BigInt(a[2]))} ETH` },
+    ];
+
+    const chunks = await Promise.all(
+      defs.map(async (def) => {
+        try {
+          const evts = await c.queryFilter(c.filters[def.name](id)) as any[];
+          return evts.map(e => ({
+            tipo:        def.name,
+            label:       def.label,
+            descricao:   def.describe(e.args),
+            txHash:      e.transactionHash as string,
+            blockNumber: e.blockNumber as number,
+          } satisfies ActivityEvent));
+        } catch { return [] as ActivityEvent[]; }
+      })
+    );
+
+    return chunks.flat().sort((a, b) => a.blockNumber - b.blockNumber);
   }
 
   // ── Escritas ──────────────────────────────────────────────────────────────

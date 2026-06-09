@@ -32,6 +32,13 @@
               <span class="tab-count">{{ contributions().length }}</span>
             }
           </button>
+          <button class="tab-btn" [class.active]="activeTab === 'atividade'"
+            (click)="setTab('atividade')">
+            Atividade
+            @if (activities().length > 0) {
+              <span class="tab-count">{{ activities().length }}</span>
+            }
+          </button>
         </div>
 
         <!-- Aba: Detalhes -->
@@ -104,6 +111,37 @@
               </table>
             </div>
           }
+        }
+
+        <!-- Aba: Atividade -->
+        @if (activeTab === 'atividade') {
+          <div class="card">
+            @if (loadingActivity()) {
+              <div class="skeleton" style="height:160px; border-radius:8px;"></div>
+            } @else if (activities().length === 0) {
+              <p class="no-action">Nenhum evento registrado.</p>
+            } @else {
+              <div class="timeline">
+                @for (ev of activities(); track ev.txHash + ev.blockNumber) {
+                  <div class="timeline-item">
+                    <div class="timeline-dot" [style.background]="activityColor(ev.tipo)"></div>
+                    <div class="timeline-body">
+                      <div class="timeline-label">{{ ev.label }}</div>
+                      <div class="timeline-desc">{{ ev.descricao }}</div>
+                      <div class="timeline-meta">
+                        Bloco #{{ ev.blockNumber }}
+                        @if (txUrl(ev.txHash); as url) {
+                          · <a [href]="url" target="_blank" rel="noopener" class="tx-link">ver tx ↗</a>
+                        } @else {
+                          · <span class="small-date mono">{{ ev.txHash.slice(0,10) }}…</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
         }
 
         <!-- Aba: Contribuições -->

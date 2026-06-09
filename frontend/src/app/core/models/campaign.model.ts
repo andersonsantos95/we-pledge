@@ -32,6 +32,18 @@ export interface Contribution {
   blockNumber: number;
 }
 
+export interface GlobalContribution extends Contribution {
+  campanhaId: bigint;
+}
+
+export interface ActivityEvent {
+  tipo: string;
+  label: string;
+  descricao: string;
+  txHash: string;
+  blockNumber: number;
+}
+
 export interface Campaign {
   id: bigint;
   criador: string;

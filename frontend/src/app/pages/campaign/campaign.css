@@ -187,6 +187,42 @@
   padding: 7px 10px;
 }
 
+/* ── Timeline de atividade ───────────────────────────────────────────────── */
+.timeline { display: flex; flex-direction: column; gap: 0; }
+
+.timeline-item {
+  display: flex;
+  gap: 14px;
+  position: relative;
+  padding-bottom: 20px;
+}
+.timeline-item:last-child { padding-bottom: 0; }
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 14px;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+.timeline-item:last-child::before { display: none; }
+
+.timeline-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 3px;
+  z-index: 1;
+}
+
+.timeline-body { flex: 1; min-width: 0; }
+.timeline-label { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.timeline-desc  { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+.timeline-meta  { font-size: 11px; color: var(--text-muted); }
+
 .tx-success {
   background: rgba(16,185,129,0.1);
   border: 1px solid rgba(16,185,129,0.3);
