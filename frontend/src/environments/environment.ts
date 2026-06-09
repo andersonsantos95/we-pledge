@@ -1,13 +1,9 @@
-/**
- * Atualize CONTRACT_ADDRESS com o endereço gerado por deploy.ts
- * (salvo em deployments/sepolia.json).
- * Após editar, reinicie o servidor: npm start
- */
+// Endereço local: determinístico — sempre o mesmo no Hardhat (deployer Account #0, nonce 0).
+// Troque por deployments/sepolia.json antes de apontar para a Sepolia.
 export const environment = {
   production: false,
-  contractAddress: '0x0000000000000000000000000000000000000000',
-  networkName: 'sepolia',
-  chainId: 11155111,
-  // RPC público de leitura — usado quando carteira não está conectada
-  publicRpcUrl: 'https://rpc2.sepolia.org',
+  contractAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+  networkName: 'localhost',
+  chainId: 31337,
+  publicRpcUrl: 'http://127.0.0.1:8545',
 };
