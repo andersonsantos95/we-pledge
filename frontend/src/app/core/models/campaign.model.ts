@@ -47,6 +47,8 @@ export interface ActivityEvent {
 export interface Campaign {
   id: bigint;
   criador: string;
+  nome: string;
+  descricao: string;
   meta: bigint;
   prazoCaptacao: bigint;
   valorArrecadado: bigint;

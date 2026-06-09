@@ -35,9 +35,13 @@
 
           <!-- Cabeçalho -->
           <div class="card-header">
-            <span class="campaign-id">#{{ c.id }}</span>
             <span class="badge {{ STATE_CSS[c.estado] }}">{{ STATE_LABELS[c.estado] }}</span>
+            <span class="campaign-id">#{{ c.id }}</span>
           </div>
+          <div class="card-title">{{ c.nome }}</div>
+          @if (c.descricao) {
+            <p class="card-desc">{{ c.descricao }}</p>
+          }
 
           <!-- Valor e progresso -->
           <div class="card-body">

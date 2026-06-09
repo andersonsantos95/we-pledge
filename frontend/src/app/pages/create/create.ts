@@ -30,9 +30,11 @@ export class CreateComponent implements OnInit {
   maxPrazoCaptacao = signal<bigint>(BigInt(365 * 24 * 3600));
 
   form = this.fb.group({
-    meta:     ['', [Validators.required, metaPositiva]],
-    prazo:    ['', Validators.required],
-    tranches: this.fb.array([this.newTranche(60, 0), this.newTranche(40, 30)]),
+    nome:      ['', [Validators.required, Validators.maxLength(100)]],
+    descricao: ['', Validators.maxLength(1000)],
+    meta:      ['', [Validators.required, metaPositiva]],
+    prazo:     ['', Validators.required],
+    tranches:  this.fb.array([this.newTranche(60, 0), this.newTranche(40, 30)]),
   });
 
   async ngOnInit(): Promise<void> {
@@ -112,14 +114,16 @@ export class CreateComponent implements OnInit {
 
     try {
       const v = this.form.value;
-      const meta = parseEther(Number(v.meta).toFixed(18).replace(/\.?0+$/, '') || '0');
-      const prazo = BigInt(Math.floor(new Date(v.prazo!).getTime() / 1000));
+      const nome      = (v.nome ?? '').trim();
+      const descricao = (v.descricao ?? '').trim();
+      const meta      = parseEther(Number(v.meta).toFixed(18).replace(/\.?0+$/, '') || '0');
+      const prazo     = BigInt(Math.floor(new Date(v.prazo!).getTime() / 1000));
       const cronograma = this.tranches.controls.map((c) => ({
         percentual:       Number(c.get('percentual')!.value),
         tempoAposVesting: BigInt(Number(c.get('dias')!.value) * 86400),
       }));
 
-      const id = await this.contract.criarCampanha(meta, prazo, cronograma);
+      const id = await this.contract.criarCampanha(nome, descricao, meta, prazo, cronograma);
       this.success.set(id);
       setTimeout(() => this.router.navigate(['/campanha', id.toString()]), 1500);
     } catch (e: any) {

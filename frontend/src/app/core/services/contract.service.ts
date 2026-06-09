@@ -39,6 +39,8 @@ export class ContractService {
     return {
       id,
       criador:          data.criador as string,
+      nome:             data.nome as string,
+      descricao:        data.descricao as string,
       meta:             BigInt(data.meta),
       prazoCaptacao:    BigInt(data.prazoCaptacao),
       valorArrecadado:  BigInt(data.valorArrecadado),
@@ -136,11 +138,13 @@ export class ContractService {
   // ── Escritas ──────────────────────────────────────────────────────────────
 
   async criarCampanha(
+    nome: string,
+    descricao: string,
     meta: bigint,
     prazoCaptacao: bigint,
     cronograma: { percentual: number; tempoAposVesting: bigint }[]
   ): Promise<bigint> {
-    const tx = await this.writeContract()['criarCampanha'](meta, prazoCaptacao, cronograma);
+    const tx = await this.writeContract()['criarCampanha'](nome, descricao, meta, prazoCaptacao, cronograma);
     const receipt = await tx.wait();
     // Extrai id do evento CampanhaCriada
     const iface = this.readContract().interface;

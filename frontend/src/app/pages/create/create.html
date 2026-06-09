@@ -16,6 +16,25 @@
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-card card">
 
+    <!-- Nome -->
+    <div class="form-group">
+      <label for="nome">Nome da campanha</label>
+      <input id="nome" type="text" formControlName="nome"
+        placeholder="Ex: Reforma da biblioteca comunitária" maxlength="100" />
+      @if (form.get('nome')?.invalid && form.get('nome')?.touched) {
+        <span class="field-error">Nome é obrigatório (máx. 100 caracteres)</span>
+      }
+    </div>
+
+    <!-- Descrição -->
+    <div class="form-group">
+      <label for="descricao">Descrição <span class="tip">(opcional)</span></label>
+      <textarea id="descricao" formControlName="descricao" rows="3"
+        placeholder="Explique o objetivo do projeto, como os fundos serão usados e o que os apoiadores receberão."
+        maxlength="1000"></textarea>
+      <span class="char-count">{{ (form.get('descricao')?.value?.length ?? 0) }}/1000</span>
+    </div>
+
     <!-- Meta -->
     <div class="form-group">
       <label for="meta">Meta (ETH)</label>

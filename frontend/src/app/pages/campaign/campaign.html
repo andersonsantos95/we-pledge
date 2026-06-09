@@ -10,10 +10,14 @@
     <!-- Hero -->
     <div class="campaign-hero">
       <div class="hero-left">
-        <div class="hero-id">Campanha #{{ c.id }}</div>
+        <div class="hero-id">{{ c.nome }}</div>
         <span class="badge {{ STATE_CSS[c.estado] }}">{{ STATE_LABELS[c.estado] }}</span>
+        <span class="hero-sub-id">#{{ c.id }}</span>
       </div>
     </div>
+    @if (c.descricao) {
+      <p class="campaign-desc">{{ c.descricao }}</p>
+    }
 
     <!-- Grid principal -->
     <div class="main-grid">

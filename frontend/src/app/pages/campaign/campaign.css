@@ -17,8 +17,17 @@
   margin: 20px 0 24px;
 }
 
-.hero-left { display: flex; align-items: center; gap: 12px; }
-.hero-id   { font-size: 1.6rem; font-weight: 700; }
+.hero-left  { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.hero-id    { font-size: 1.6rem; font-weight: 700; }
+.hero-sub-id{ font-size: 13px; color: var(--text-muted); font-family: monospace; background: var(--surface-2); padding: 2px 7px; border-radius: 4px; }
+
+.campaign-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.65;
+  margin: -8px 0 20px;
+  max-width: 680px;
+}
 
 .main-grid {
   display: grid;
