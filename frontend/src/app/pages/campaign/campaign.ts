@@ -130,7 +130,7 @@ export class CampaignComponent implements OnInit {
 
   contribute(): void {
     const id  = this.c!.id;
-    const val = parseEther(this.contributeAmount || '0');
+    const val = parseEther(String(this.contributeAmount || '0'));
     if (val <= 0n) { this.txError.set('Informe um valor válido.'); return; }
     this.runTx('Contribuição', () => this.contract.contribuir(id, val));
   }
