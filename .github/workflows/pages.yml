@@ -33,8 +33,9 @@ jobs:
       - name: Build (production)
         working-directory: frontend
         run: npx ng build --configuration production
-        env:
-          CONTRACT_ADDRESS: ${{ secrets.CONTRACT_ADDRESS }}
+
+      - name: Fix SPA routing (copy index.html → 404.html)
+        run: cp frontend/dist/frontend/browser/index.html frontend/dist/frontend/browser/404.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

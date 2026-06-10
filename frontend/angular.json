@@ -54,6 +54,7 @@
           },
           "configurations": {
             "production": {
+              "baseHref": "/we-pledge/",
               "fileReplacements": [
                 {
                   "replace": "src/environments/environment.ts",
