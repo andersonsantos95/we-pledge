@@ -1,0 +1,13 @@
+{
+  "address": "0x4255FAC8944f333ca31106d482614ADA53cF8c74",
+  "network": "sepolia",
+  "chainId": null,
+  "blockNumber": 11026757,
+  "deployedAt": "2026-06-10T02:50:13.681Z",
+  "constructorArgs": {
+    "janelaFinalizacao": 120,
+    "janelaAbandono": 300,
+    "maxTranches": 5,
+    "maxPrazoCaptacao": 31536000
+  }
+}
