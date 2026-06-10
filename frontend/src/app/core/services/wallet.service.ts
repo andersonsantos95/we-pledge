@@ -55,9 +55,9 @@ export class WalletService {
     this.isConnected.set(false);
   }
 
-  /** Para leituras: usa MetaMask se conectado, RPC público caso contrário. */
-  getReadProvider(): BrowserProvider | JsonRpcProvider {
-    return this.provider ?? this.readOnlyProvider;
+  /** Para leituras: sempre usa o RPC configurado — evita mismatch de rede com a wallet. */
+  getReadProvider(): JsonRpcProvider {
+    return this.readOnlyProvider;
   }
 
   /** Para escritas: requer carteira conectada. */
