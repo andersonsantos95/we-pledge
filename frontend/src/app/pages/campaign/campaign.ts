@@ -178,6 +178,12 @@ export class CampaignComponent implements OnInit, OnDestroy {
     return deadline > now ? deadline - now : 0n;
   }
 
+  get secondsUntilCaptacaoDeadline(): bigint {
+    if (!this.c) return 0n;
+    const now = this.contract.now();
+    return this.c.prazoCaptacao > now ? this.c.prazoCaptacao - now : 0n;
+  }
+
   formatDuration(seconds: bigint): string {
     const s = Number(seconds);
     if (s <= 0) return '0 segundos';

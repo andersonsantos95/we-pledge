@@ -260,63 +260,51 @@
             <div class="error-msg">{{ txError() }}</div>
           }
 
-          <!-- Contexto de abandono (criador e doador) -->
+          <!-- Countdowns de abandono (criador e doador) -->
           @if (showAbandonmentContext) {
-            <div class="atl-wrap">
 
-              <!-- Barra de tempo -->
-              <div class="atl-track-wrap">
-                @if (timelineNowPct >= 0) {
-                  <div class="atl-needle" [style.left.%]="timelineNowPct">
-                    <span class="atl-needle-label">agora</span>
-                    <span class="atl-needle-line"></span>
-                  </div>
+            @if (!deadlineExpired) {
+              <!-- Antes do prazo: dois cards mostrando ambos os horizontes -->
+              <div class="abn-pair">
+                <div class="abn-card abn-card-neutral">
+                  <div class="abn-card-label">Fim da captação</div>
+                  <div class="abn-card-timer">{{ formatCountdown(secondsUntilCaptacaoDeadline) }}</div>
+                </div>
+                <div class="abn-card abn-card-neutral">
+                  <div class="abn-card-label">Abandono em</div>
+                  <div class="abn-card-timer">{{ formatCountdown(countdownSeconds()) }}</div>
+                </div>
+              </div>
+              <p class="abn-sub">
+                Após o prazo, {{ isCreator ? 'você terá' : 'o criador terá' }}
+                <strong>{{ formatDuration(janelaFinalizacao() + janelaAbandono()) }}</strong>
+                para finalizar antes que o abandono possa ser declarado.
+              </p>
+            } @else if (countdownSeconds() > 0n) {
+              <!-- Após o prazo: card único com urgência -->
+              <div class="abn-card {{ countdownColorClass }}">
+                <div class="abn-card-label">
+                  @if (isCreator) { ⚠ Finalize antes do abandono } @else { Janela de abandono }
+                </div>
+                <div class="abn-card-timer {{ countdownIsCritical ? 'countdown-pulse' : '' }}">
+                  {{ formatCountdown(countdownSeconds()) }}
+                </div>
+                <div class="abn-card-sub">
+                  @if (isCreator) { restantes para finalizar } @else { até poder declarar abandono }
+                </div>
+              </div>
+            } @else {
+              <!-- Janela encerrada -->
+              <div class="abn-card abn-card-expired">
+                @if (isCreator) {
+                  <div class="abn-card-label">Prazo de finalização expirado</div>
+                } @else {
+                  <div class="abn-card-label">Abandono disponível</div>
+                  <div class="abn-card-sub">Use o botão abaixo.</div>
                 }
-                <div class="atl-bar">
-                  <div class="atl-seg atl-seg-ok" [style.width.%]="timelineFinalizacaoPct">
-                    <span class="atl-seg-label">Finalização</span>
-                  </div>
-                  <div class="atl-seg atl-seg-danger">
-                    <span class="atl-seg-label">Abandono</span>
-                  </div>
-                </div>
               </div>
-              <div class="atl-dates">
-                <span>{{ formatTs(c!.prazoCaptacao) }}</span>
-                <span>{{ formatTs(abandonmentDeadline) }}</span>
-              </div>
+            }
 
-              <!-- Texto contextual -->
-              @if (creatorAbandonmentWarning === 'urgent') {
-                <div class="abn-countdown {{countdownColorClass}}">
-                  <div class="abn-countdown-left">
-                    <span class="abn-countdown-label">⚠ Finalize antes do abandono</span>
-                    <span class="abn-countdown-sub">restantes para finalizar</span>
-                  </div>
-                  <div class="abn-countdown-timer {{countdownIsCritical ? 'countdown-pulse' : ''}}">
-                    {{ formatCountdown(countdownSeconds()) }}
-                  </div>
-                </div>
-              } @else if (timelineNowPct >= 0 && countdownSeconds() > 0n) {
-                <p class="abn-note">
-                  <strong>{{ formatDuration(countdownSeconds()) }}</strong>
-                  {{ isCreator ? 'para finalizar antes do abandono' : 'até o abandono poder ser declarado' }}
-                </p>
-              } @else if (timelineNowPct >= 0 && countdownSeconds() === 0n && !isCreator) {
-                <p class="abn-note">Abandono disponível — use o botão abaixo.</p>
-              } @else {
-                <p class="abn-note">
-                  Após o prazo, {{ isCreator ? 'você terá' : 'o criador terá' }}
-                  <strong>{{ formatDuration(janelaFinalizacao() + janelaAbandono()) }}</strong>
-                  para finalizar antes que o abandono possa ser declarado.
-                </p>
-              }
-
-              <div class="atl-legend">
-                <span class="atl-legend-item"><span class="atl-dot atl-dot-ok"></span>Criador pode finalizar</span>
-                <span class="atl-legend-item"><span class="atl-dot atl-dot-danger"></span>Abandono disponível</span>
-              </div>
-            </div>
           }
 
           <!-- Contribuir -->
