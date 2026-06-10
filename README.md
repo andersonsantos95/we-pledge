@@ -136,6 +136,7 @@ A segunda tranche (40%, disponível após 60 s) fica pendente para demonstraçã
 
 ## Apresentação
 
+- **Sistema ao vivo:** [https://andersonsantos95.github.io/we-pledge](https://andersonsantos95.github.io/we-pledge)
 - **Vídeo-pitch (5 min):** [https://youtu.be/e2r8QFoCRiE](https://youtu.be/e2r8QFoCRiE)
 - **Slides (PDF):** [`docs/WePledge - Pitch de Apresentação.pdf`](docs/WePledge%20-%20Pitch%20de%20Apresentação.pdf)
 
