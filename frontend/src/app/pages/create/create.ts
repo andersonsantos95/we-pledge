@@ -5,6 +5,11 @@ import { parseEther } from 'ethers';
 import { ContractService } from '../../core/services/contract.service';
 import { WalletService } from '../../core/services/wallet.service';
 
+function localDatetimeStr(d: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function metaPositiva(ctrl: AbstractControl): ValidationErrors | null {
   const v = parseFloat(ctrl.value);
   return isNaN(v) || v <= 0 ? { positivo: true } : null;
@@ -45,13 +50,13 @@ export class CreateComponent implements OnInit {
 
   get minPrazo(): string {
     const d = new Date();
-    d.setMinutes(d.getMinutes() + 5);
-    return d.toISOString().slice(0, 16);
+    d.setMinutes(d.getMinutes() + 2);
+    return localDatetimeStr(d);
   }
 
   get maxPrazoStr(): string {
     const d = new Date(Date.now() + Number(this.maxPrazoCaptacao()) * 1000);
-    return d.toISOString().slice(0, 16);
+    return localDatetimeStr(d);
   }
 
   prazoExcedeMaximo(): boolean {
