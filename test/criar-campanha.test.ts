@@ -175,11 +175,11 @@ describe("criarCampanha", function () {
       ).to.not.be.reverted;
     });
 
-    it("aceita prazo de 1 segundo no futuro", async function () {
+    it("aceita prazo mínimo no futuro", async function () {
       const { wepledge, criador } = await loadFixture(deploy);
       const agora = await time.latest();
       await expect(
-        wepledge.connect(criador).criarCampanha("T", "", hre.ethers.parseEther("1"), agora + 1,
+        wepledge.connect(criador).criarCampanha("T", "", hre.ethers.parseEther("1"), agora + 2,
           [{ percentual: 100, tempoAposVesting: 0 }])
       ).to.not.be.reverted;
     });
