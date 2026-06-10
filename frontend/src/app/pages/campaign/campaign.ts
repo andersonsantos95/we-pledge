@@ -236,8 +236,8 @@ export class CampaignComponent implements OnInit, OnDestroy {
     return `${hours}h ${mins}m`;
   }
 
-  get showTimeline(): boolean {
-    return !!this.c && !this.isCreator &&
+  get showAbandonmentContext(): boolean {
+    return !!this.c &&
       this.c.estado === CampaignState.Captacao &&
       this.c.valorArrecadado >= this.c.meta;
   }

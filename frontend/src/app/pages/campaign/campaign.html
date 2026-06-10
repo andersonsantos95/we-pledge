@@ -260,10 +260,11 @@
             <div class="error-msg">{{ txError() }}</div>
           }
 
-          <!-- Timeline de abandono (não-criadores) -->
-          @if (showTimeline) {
+          <!-- Contexto de abandono (criador e doador) -->
+          @if (showAbandonmentContext) {
             <div class="atl-wrap">
-              <p class="atl-caption">Meta atingida — janela até o abandono poder ser declarado</p>
+
+              <!-- Barra de tempo -->
               <div class="atl-track-wrap">
                 @if (timelineNowPct >= 0) {
                   <div class="atl-needle" [style.left.%]="timelineNowPct">
@@ -284,6 +285,33 @@
                 <span>{{ formatTs(c!.prazoCaptacao) }}</span>
                 <span>{{ formatTs(abandonmentDeadline) }}</span>
               </div>
+
+              <!-- Texto contextual -->
+              @if (creatorAbandonmentWarning === 'urgent') {
+                <div class="abn-countdown {{countdownColorClass}}">
+                  <div class="abn-countdown-left">
+                    <span class="abn-countdown-label">⚠ Finalize antes do abandono</span>
+                    <span class="abn-countdown-sub">restantes para finalizar</span>
+                  </div>
+                  <div class="abn-countdown-timer {{countdownIsCritical ? 'countdown-pulse' : ''}}">
+                    {{ formatCountdown(countdownSeconds()) }}
+                  </div>
+                </div>
+              } @else if (timelineNowPct >= 0 && countdownSeconds() > 0n) {
+                <p class="abn-note">
+                  <strong>{{ formatDuration(countdownSeconds()) }}</strong>
+                  {{ isCreator ? 'para finalizar antes do abandono' : 'até o abandono poder ser declarado' }}
+                </p>
+              } @else if (timelineNowPct >= 0 && countdownSeconds() === 0n && !isCreator) {
+                <p class="abn-note">Abandono disponível — use o botão abaixo.</p>
+              } @else {
+                <p class="abn-note">
+                  Após o prazo, {{ isCreator ? 'você terá' : 'o criador terá' }}
+                  <strong>{{ formatDuration(janelaFinalizacao() + janelaAbandono()) }}</strong>
+                  para finalizar antes que o abandono possa ser declarado.
+                </p>
+              }
+
               <div class="atl-legend">
                 <span class="atl-legend-item"><span class="atl-dot atl-dot-ok"></span>Criador pode finalizar</span>
                 <span class="atl-legend-item"><span class="atl-dot atl-dot-danger"></span>Abandono disponível</span>
@@ -321,23 +349,6 @@
           @if (canFinalize) {
             <div class="action-block">
               <h4>Iniciar Vesting</h4>
-
-              @if (creatorAbandonmentWarning === 'urgent') {
-                <div class="countdown-wrap {{countdownColorClass}}">
-                  <div class="countdown-heading">⚠ Finalize antes do abandono</div>
-                  <div class="countdown-timer {{countdownIsCritical ? 'countdown-pulse' : ''}}">
-                    {{ formatCountdown(countdownSeconds()) }}
-                  </div>
-                  <div class="countdown-sub">restantes para finalizar</div>
-                </div>
-              } @else if (creatorAbandonmentWarning === 'info') {
-                <div class="abandonment-info">
-                  Após o prazo de captação, você terá
-                  {{ formatDuration(janelaFinalizacao() + janelaAbandono()) }}
-                  para finalizar antes que a campanha possa ser marcada como abandonada.
-                </div>
-              }
-
               <p class="action-desc">Meta atingida. Clique para finalizar a captação e iniciar a liberação das tranches.</p>
               <button class="btn btn-success" style="width:100%"
                 (click)="finalize()" [disabled]="txLoading()">
