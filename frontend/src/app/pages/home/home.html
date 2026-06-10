@@ -64,9 +64,9 @@
           <div class="card-meta">
             <div class="meta-row">
               <span class="meta-label">Prazo</span>
-              <span [class.expired]="isExpired(c.prazoCaptacao)">
+              <span [class.expired]="isExpired(c.prazoCaptacao) && c.estado === CampaignState.Captacao">
                 {{ formatDeadline(c.prazoCaptacao) }}
-                @if (isExpired(c.prazoCaptacao)) {
+                @if (isExpired(c.prazoCaptacao) && c.estado === CampaignState.Captacao) {
                   <span class="tag-expired">expirado</span>
                 }
               </span>
