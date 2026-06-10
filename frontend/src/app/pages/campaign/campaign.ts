@@ -227,6 +227,10 @@ export class CampaignComponent implements OnInit, OnDestroy {
     return this.countdownSeconds() <= 600n;
   }
 
+  get abandonmentCountdownActive(): boolean {
+    return this.countdownSeconds() > 0n;
+  }
+
   formatCountdown(seconds: bigint): string {
     const s = Number(seconds);
     if (s <= 0) return '00:00';

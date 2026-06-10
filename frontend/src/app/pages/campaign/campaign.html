@@ -280,7 +280,7 @@
                 <strong>{{ formatDuration(janelaFinalizacao() + janelaAbandono()) }}</strong>
                 para finalizar antes que o abandono possa ser declarado.
               </p>
-            } @else if (countdownSeconds() > 0n) {
+            } @else if (abandonmentCountdownActive) {
               <!-- Após o prazo: card único com urgência -->
               <div class="abn-card {{ countdownColorClass }}">
                 <div class="abn-card-label">
