@@ -69,12 +69,60 @@
               </div>
             </div>
 
-            <div class="progress-section">
+            <!-- Barra de ciclo de vida -->
+            <div class="lc-bar">
+
+              <div class="lc-step"
+                [class.lc-active]="c.estado === CampaignState.Captacao"
+                [class.lc-done]="c.estado === CampaignState.EmVesting || c.estado === CampaignState.Concluida"
+                [class.lc-failed]="c.estado === CampaignState.Fracassada">
+                <div class="lc-dot">
+                  @if (c.estado === CampaignState.Fracassada) { ✕ }
+                  @else if (c.estado === CampaignState.EmVesting || c.estado === CampaignState.Concluida) { ✓ }
+                </div>
+                <div class="lc-label">Captação</div>
+              </div>
+
+              <div class="lc-connector"
+                [class.lc-conn-done]="c.estado === CampaignState.EmVesting || c.estado === CampaignState.Concluida"
+                [class.lc-conn-failed]="c.estado === CampaignState.Fracassada"></div>
+
+              <div class="lc-step"
+                [class.lc-active]="c.estado === CampaignState.EmVesting"
+                [class.lc-done]="c.estado === CampaignState.Concluida">
+                <div class="lc-dot">
+                  @if (c.estado === CampaignState.Concluida) { ✓ }
+                </div>
+                <div class="lc-label">Em Vesting</div>
+              </div>
+
+              <div class="lc-connector"
+                [class.lc-conn-done]="c.estado === CampaignState.Concluida"></div>
+
+              <div class="lc-step"
+                [class.lc-active]="c.estado === CampaignState.Concluida"
+                [class.lc-done]="c.estado === CampaignState.Concluida">
+                <div class="lc-dot">
+                  @if (c.estado === CampaignState.Concluida) { ✓ }
+                </div>
+                <div class="lc-label">Concluída</div>
+              </div>
+
+            </div>
+
+            <!-- Sub-progresso contextual -->
+            @if (c.estado === CampaignState.Captacao || c.estado === CampaignState.Fracassada) {
               <div class="progress-bar-track progress-lg">
                 <div class="progress-bar-fill" [style.width.%]="progress()"></div>
               </div>
               <div class="progress-pct">{{ progress() | number:'1.0-1' }}% da meta</div>
-            </div>
+            }
+            @if (c.estado === CampaignState.EmVesting) {
+              <div class="progress-pct">
+                {{ tranchesSacadasCount }}/{{ c.cronograma.length }}
+                tranche{{ c.cronograma.length > 1 ? 's' : '' }} sacada{{ c.cronograma.length > 1 ? 's' : '' }}
+              </div>
+            }
           </div>
 
           <!-- Cronograma de vesting -->
@@ -212,6 +260,37 @@
             <div class="error-msg">{{ txError() }}</div>
           }
 
+          <!-- Timeline de abandono (não-criadores) -->
+          @if (showTimeline) {
+            <div class="atl-wrap">
+              <p class="atl-caption">Meta atingida — janela até o abandono poder ser declarado</p>
+              <div class="atl-track-wrap">
+                @if (timelineNowPct >= 0) {
+                  <div class="atl-needle" [style.left.%]="timelineNowPct">
+                    <span class="atl-needle-label">agora</span>
+                    <span class="atl-needle-line"></span>
+                  </div>
+                }
+                <div class="atl-bar">
+                  <div class="atl-seg atl-seg-ok" [style.width.%]="timelineFinalizacaoPct">
+                    <span class="atl-seg-label">Finalização</span>
+                  </div>
+                  <div class="atl-seg atl-seg-danger">
+                    <span class="atl-seg-label">Abandono</span>
+                  </div>
+                </div>
+              </div>
+              <div class="atl-dates">
+                <span>{{ formatTs(c!.prazoCaptacao) }}</span>
+                <span>{{ formatTs(abandonmentDeadline) }}</span>
+              </div>
+              <div class="atl-legend">
+                <span class="atl-legend-item"><span class="atl-dot atl-dot-ok"></span>Criador pode finalizar</span>
+                <span class="atl-legend-item"><span class="atl-dot atl-dot-danger"></span>Abandono disponível</span>
+              </div>
+            </div>
+          }
+
           <!-- Contribuir -->
           @if (canContribute) {
             <div class="action-block">
@@ -244,11 +323,12 @@
               <h4>Iniciar Vesting</h4>
 
               @if (creatorAbandonmentWarning === 'urgent') {
-                <div class="abandonment-urgent">
-                  <strong>⚠ Atenção!</strong> Finalize antes que qualquer pessoa marque esta campanha como abandonada.
-                  <div class="abandonment-countdown">
-                    {{ formatDuration(secondsUntilAbandonmentDeadline) }} restantes
+                <div class="countdown-wrap {{countdownColorClass}}">
+                  <div class="countdown-heading">⚠ Finalize antes do abandono</div>
+                  <div class="countdown-timer {{countdownIsCritical ? 'countdown-pulse' : ''}}">
+                    {{ formatCountdown(countdownSeconds()) }}
                   </div>
+                  <div class="countdown-sub">restantes para finalizar</div>
                 </div>
               } @else if (creatorAbandonmentWarning === 'info') {
                 <div class="abandonment-info">

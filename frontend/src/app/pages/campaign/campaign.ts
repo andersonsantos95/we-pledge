@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
@@ -14,7 +14,7 @@ import { environment } from '../../../environments/environment';
   templateUrl: './campaign.html',
   styleUrl: './campaign.css',
 })
-export class CampaignComponent implements OnInit {
+export class CampaignComponent implements OnInit, OnDestroy {
   private route    = inject(ActivatedRoute);
   private contract = inject(ContractService);
   readonly wallet  = inject(WalletService);
@@ -34,6 +34,8 @@ export class CampaignComponent implements OnInit {
   txSuccess          = signal<string | null>(null);
   activities         = signal<ActivityEvent[]>([]);
   activityLoaded     = false;
+  countdownSeconds   = signal(0n);
+  private tickInterval: ReturnType<typeof setInterval> | null = null;
 
   activeTab: 'detalhes' | 'contribuicoes' | 'atividade' = 'detalhes';
 
@@ -67,6 +69,7 @@ export class CampaignComponent implements OnInit {
       this.campaign.set(camp);
       this.janelaFinalizacao.set(janelas.finalizacao);
       this.janelaAbandono.set(janelas.abandono);
+      this.startAbandonmentCountdown();
       if (this.wallet.isConnected()) {
         this.myBalance.set(await this.contract.getMyBalance(id));
       }
@@ -177,17 +180,86 @@ export class CampaignComponent implements OnInit {
 
   formatDuration(seconds: bigint): string {
     const s = Number(seconds);
-    if (s <= 0) return '0s';
+    if (s <= 0) return '0 segundos';
     const days  = Math.floor(s / 86400);
     const hours = Math.floor((s % 86400) / 3600);
     const mins  = Math.floor((s % 3600) / 60);
     const secs  = s % 60;
     const parts: string[] = [];
-    if (days  > 0) parts.push(`${days}d`);
-    if (hours > 0) parts.push(`${hours}h`);
-    if (mins  > 0) parts.push(`${mins}m`);
-    if (secs  > 0 && days === 0) parts.push(`${secs}s`);
-    return parts.join(' ') || '0s';
+    if (days  > 0) parts.push(`${days} ${days  === 1 ? 'dia'     : 'dias'}`);
+    if (hours > 0) parts.push(`${hours} ${hours === 1 ? 'hora'    : 'horas'}`);
+    if (mins  > 0 && days  === 0) parts.push(`${mins} ${mins  === 1 ? 'minuto'  : 'minutos'}`);
+    if (secs  > 0 && hours === 0 && mins === 0) parts.push(`${secs} ${secs === 1 ? 'segundo' : 'segundos'}`);
+    if (parts.length === 0) return '0 segundos';
+    if (parts.length === 1) return parts[0];
+    const last = parts.pop()!;
+    return `${parts.join(', ')} e ${last}`;
+  }
+
+  private startAbandonmentCountdown(): void {
+    // Tick incondicional: recalcula a cada segundo a partir do relógio real.
+    // Condições de exibição (isCreator, estado, meta) ficam no template e nos
+    // getters — assim o contador é correto mesmo se a carteira reconectar depois
+    // do page load, ou se a meta for atingida por uma contribuição pós-carregamento.
+    const tick = () => this.countdownSeconds.set(this.secondsUntilAbandonmentDeadline);
+    tick();
+    this.tickInterval = setInterval(tick, 1000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.tickInterval !== null) clearInterval(this.tickInterval);
+  }
+
+  get countdownColorClass(): string {
+    const s = Number(this.countdownSeconds());
+    if (s > 3600) return 'countdown-amber';
+    if (s > 600)  return 'countdown-orange';
+    return 'countdown-red';
+  }
+
+  get countdownIsCritical(): boolean {
+    return this.countdownSeconds() <= 600n;
+  }
+
+  formatCountdown(seconds: bigint): string {
+    const s = Number(seconds);
+    if (s <= 0) return '00:00';
+    if (s < 3600) {
+      const m   = Math.floor(s / 60).toString().padStart(2, '0');
+      const sec = (s % 60).toString().padStart(2, '0');
+      return `${m}:${sec}`;
+    }
+    const days  = Math.floor(s / 86400);
+    const hours = Math.floor((s % 86400) / 3600);
+    const mins  = Math.floor((s % 3600) / 60);
+    if (days > 0) return `${days}d ${hours}h`;
+    return `${hours}h ${mins}m`;
+  }
+
+  get showTimeline(): boolean {
+    return !!this.c && !this.isCreator &&
+      this.c.estado === CampaignState.Captacao &&
+      this.c.valorArrecadado >= this.c.meta;
+  }
+
+  get timelineFinalizacaoPct(): number {
+    const total = this.janelaFinalizacao() + this.janelaAbandono();
+    if (total === 0n) return 50;
+    return Number(this.janelaFinalizacao() * 100n / total);
+  }
+
+  get timelineNowPct(): number {
+    if (!this.c) return -1;
+    const start = this.c.prazoCaptacao;
+    const end   = this.abandonmentDeadline;
+    const now   = this.contract.now();
+    if (now < start || end <= start) return -1;
+    const raw = Number((now - start) * 100n / (end - start));
+    return Math.max(0, Math.min(100, raw));
+  }
+
+  get tranchesSacadasCount(): number {
+    return this.c?.cronograma.filter(t => t.sacada).length ?? 0;
   }
 
   get canRefund(): boolean {

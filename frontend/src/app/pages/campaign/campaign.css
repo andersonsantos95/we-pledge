@@ -56,6 +56,75 @@
 .progress-lg { height: 12px; }
 .progress-pct { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
 
+/* ── Barra de ciclo de vida ──────────────────────────────────────────────── */
+.lc-bar {
+  display: flex;
+  align-items: flex-start;
+  margin: 20px 0 14px;
+  user-select: none;
+}
+
+.lc-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+  margin-top: 13px;
+  transition: background 0.3s;
+}
+.lc-conn-done   { background: var(--success); }
+.lc-conn-failed { background: var(--danger); }
+
+.lc-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.lc-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: transparent;
+  position: relative;
+  transition: all 0.25s;
+}
+
+.lc-step.lc-active .lc-dot {
+  border-color: var(--primary-light);
+  background: var(--primary-light);
+  box-shadow: 0 0 0 5px rgba(99,102,241,0.18);
+}
+
+.lc-step.lc-done .lc-dot {
+  border-color: var(--success);
+  background: var(--success);
+  color: #fff;
+}
+
+.lc-step.lc-failed .lc-dot {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff;
+}
+
+.lc-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.lc-step.lc-active .lc-label { color: var(--primary-light); }
+.lc-step.lc-done   .lc-label { color: var(--text); }
+.lc-step.lc-failed .lc-label { color: var(--danger); }
+
 .section-title {
   font-size: 15px;
   font-weight: 600;
@@ -242,24 +311,36 @@
   margin-bottom: 16px;
 }
 
-.abandonment-urgent {
-  background: rgba(239,68,68,0.1);
-  border: 1px solid rgba(239,68,68,0.35);
-  border-radius: 8px;
-  padding: 12px 14px;
-  font-size: 13px;
-  color: var(--danger);
-  margin-bottom: 12px;
-  line-height: 1.5;
+/* ── Countdown do criador (opção B) ─────────────────────────────────────── */
+.countdown-wrap {
+  border-radius: 10px;
+  border: 1px solid transparent;
+  padding: 14px;
+  margin-bottom: 14px;
+  text-align: center;
 }
+.countdown-amber  { background: rgba(245,158,11,0.10); border-color: rgba(245,158,11,0.40); color: var(--warning); }
+.countdown-orange { background: rgba(249,115,22,0.10); border-color: rgba(249,115,22,0.45); color: #f97316; }
+.countdown-red    { background: rgba(239,68,68,0.12);  border-color: rgba(239,68,68,0.50);  color: var(--danger); }
 
-.abandonment-countdown {
-  font-size: 22px;
+.countdown-heading { font-size: 12px; font-weight: 600; margin-bottom: 10px; opacity: 0.85; }
+
+.countdown-timer {
+  font-size: 38px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  margin-top: 6px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  margin-bottom: 6px;
 }
+
+.countdown-sub { font-size: 11px; opacity: 0.65; }
+
+@keyframes pulse-opacity {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+.countdown-pulse { animation: pulse-opacity 1s ease-in-out infinite; }
 
 .abandonment-info {
   background: rgba(99,102,241,0.08);
@@ -271,3 +352,112 @@
   margin-bottom: 12px;
   line-height: 1.55;
 }
+
+/* ── Timeline de abandono (opção C, não-criadores) ───────────────────────── */
+.atl-wrap {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px 10px;
+  margin-bottom: 16px;
+}
+
+.atl-caption {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  line-height: 1.4;
+}
+
+.atl-track-wrap {
+  position: relative;
+  padding-top: 26px;
+  margin-bottom: 4px;
+}
+
+.atl-needle {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+  pointer-events: none;
+}
+.atl-needle-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  margin-bottom: 3px;
+}
+.atl-needle-line {
+  width: 2px;
+  height: 10px;
+  background: var(--text);
+  border-radius: 1px;
+  display: block;
+}
+
+.atl-bar {
+  display: flex;
+  height: 18px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.atl-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-width: 0;
+}
+.atl-seg-ok     { background: rgba(245,158,11,0.28); }
+.atl-seg-danger { background: rgba(239,68,68,0.28); flex: 1; }
+.atl-seg-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.atl-dates {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: monospace;
+  margin-top: 5px;
+}
+
+.atl-legend {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.atl-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.atl-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.atl-dot-ok     { background: rgba(245,158,11,0.6); }
+.atl-dot-danger { background: rgba(239,68,68,0.6); }
