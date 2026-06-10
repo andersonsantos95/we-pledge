@@ -48,7 +48,8 @@ test/
   vesting.test.ts           finalizarCampanha e sacarTranche
   fracasso-reembolso.test.ts  marcarFracasso e reembolsar
   abandono.test.ts          marcarAbandono
-frontend/                   Interface web (Next.js + Ethers.js v6) — em desenvolvimento
+frontend/                   Interface web (Angular 19 + Ethers.js v6)
+docs/                       Documentação e materiais de apresentação
 ```
 
 ## Como executar
@@ -130,15 +131,20 @@ A segunda tranche (40%, disponível após 60 s) fica pendente para demonstraçã
 - **Hardhat** para desenvolvimento, testes e deploy
 - **OpenZeppelin** (`ReentrancyGuard`)
 - **Ethers.js v6** + **TypeScript** para scripts e testes
-- **Next.js** para o frontend (em desenvolvimento)
+- **Angular 19** para o frontend (signals, standalone components, lazy-loading)
 - **Sepolia testnet** para deploy público
+
+## Apresentação
+
+- **Vídeo-pitch (5 min):** [https://youtu.be/e2r8QFoCRiE](https://youtu.be/e2r8QFoCRiE)
+- **Slides (PDF):** [`docs/WePledge - Pitch de Apresentação.pdf`](docs/WePledge%20-%20Pitch%20de%20Apresentação.pdf)
 
 ## Requisitos mínimos do desafio
 
 - [x] Contrato deployado
 - [x] Fluxo demonstrável
 - [x] README funcional
-- [ ] Vídeo-pitch
+- [x] Vídeo-pitch — [https://youtu.be/e2r8QFoCRiE](https://youtu.be/e2r8QFoCRiE)
 
 ## Equipe
 
